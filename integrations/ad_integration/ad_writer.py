@@ -134,31 +134,40 @@ class LoraCacheSource(MODataSource):
         return dict_subset(mail_dict, ['uuid', 'value'])
 
     def find_primary_engagement(self, uuid):
-        no_active_engagements = True
-        for eng in self.lc.engagements.values():
-            if eng[0]['user'] == uuid:
-                no_active_engagements = False
-                if eng[0]['primary_boolean']:
-                    found_primary = True
-                    employment_number = eng[0]['user_key']
-                    title = self.lc.classes[eng[0]['job_function']]['title']
-                    eng_org_unit = eng[0]['unit']
-                    eng_uuid = eng[0]['uuid']
-        if no_active_engagements:
-            for eng in self.lc_historic.engagements.values():
-                if eng[0]['user'] == uuid:
-                    logger.info('Found future engagement')
-                    return self.mo_rest_source.find_primary_engagement(uuid)
+        def filter_for_user(engagements):
+            return filter(
+                lambda eng: eng[0]['user'] == uuid, engagements
+            )
+        def filter_primary(engagements):
+            return filter(
+                lambda eng: eng[0]['primary_boolean'], engagements
+            )
 
-        if no_active_engagements:
-            raise NoActiveEngagementsException()
+        user_engagements = list(filter_for_user(self.lc.engagements.values()))
+        # No user engagements
+        if not user_engagements:
+            # But we may still have future engagements
+            future_engagement = next(
+                filter_for_user(self.lc_historic.engagements.values()), None
+            )
+            # We do not have any engagements at all
+            if future_engagement is None:
+                raise NoActiveEngagementsException()
+            # We have future engagements, but LoraCache does not handle that.
+            # Delegate to MORESTSource
+            logger.info('Found future engagement')
+            return self.mo_rest_source.find_primary_engagement(uuid)
 
-        if not found_primary:
+        primary_engagement = next(filter_primary(user_engagements), None)
+        if primary_engagement is None:
             raise NoPrimaryEngagementException('User: {}'.format(uuid))
 
-        return (
-            employment_number, title, eng_org_unit, eng_uuid
-        )
+        primary_engagement = primary_engagement[0]
+        employment_number = primary_engagement['user_key']
+        title = self.lc.classes[primary_engagement['job_function']]['title']
+        eng_org_unit = primary_engagement['unit']
+        eng_uuid = primary_engagement['uuid']
+        return employment_number, title, eng_org_unit, eng_uuid
 
     def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
         return self.mo_rest_source.get_manager_uuid(mo_user, eng_org_unit, eng_uuid)
@@ -215,28 +224,26 @@ class MORESTSource(MODataSource):
         return dict_subset(mail_dict, ['uuid', 'value'])
 
     def find_primary_engagement(self, uuid):
-        engagements = self.helper.read_user_engagement(
-            uuid, calculate_primary=True, read_all=True, skip_past=True)
-        no_active_engagements = True
-        found_primary = False
-        for engagement in engagements:
-            no_active_engagements = False
-            if engagement['is_primary']:
-                found_primary = True
-                employment_number = engagement['user_key']
-                title = engagement['job_function']['name']
-                eng_org_unit = engagement['org_unit']['uuid']
-                eng_uuid = engagement['uuid']
+        def filter_primary(engagements):
+            return filter(
+                lambda eng: eng['is_primary'], engagements
+            )
 
-        if no_active_engagements:
+        user_engagements = self.helper.read_user_engagement(
+            uuid, calculate_primary=True, read_all=True, skip_past=True
+        )
+        if not user_engagements:
             raise NoActiveEngagementsException()
 
-        if not found_primary:
+        primary_engagement = next(filter_primary(user_engagements), None)
+        if primary_engagement is None:
             raise NoPrimaryEngagementException('User: {}'.format(uuid))
 
-        return (
-            employment_number, title, eng_org_unit, eng_uuid
-        )
+        employment_number = primary_engagement['user_key']
+        title = primary_engagement['job_function']['name']
+        eng_org_unit = primary_engagement['org_unit']['uuid']
+        eng_uuid = primary_engagement['uuid']
+        return employment_number, title, eng_org_unit, eng_uuid
 
     def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
         try:
