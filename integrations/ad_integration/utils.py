@@ -162,6 +162,19 @@ def dict_filter(func, dicty):
     return dict_partition(func, dicty)[1]
 
 
+def dict_exclude(dicty, keys):
+    return dict_filter(
+        lambda key, value: key not in keys,
+        dicty
+    )
+
+def dict_subset(dicty, keys):
+    return dict_filter(
+        lambda key, value: key in keys,
+        dicty
+    )
+
+
 def duplicates(iterable):
     """Return set of duplicates from iterable.
 
