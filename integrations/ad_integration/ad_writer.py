@@ -170,6 +170,7 @@ class LoraCacheSource(MODataSource):
         return employment_number, title, eng_org_unit, eng_uuid
 
     def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
+        return self.mo_rest_source.get_manager_uuid(mo_user, eng_org_unit, eng_uuid)
         # XXX: This implementation is not equivalent with mo_rest_source
         # TODO: Fix this and reactivate it
         try:
