@@ -234,21 +234,13 @@ def kle_to_orgunit(orgunit, kle):
         None
     """
     tasks = set()
-    contactfortasks = set()
 
     for k in kle:
         uuid = k["uuid"]
-        for a in k["kle_aspect"]:
-            if a["scope"] == "UDFOERENDE":
-                tasks.add(uuid)
-            elif a["scope"] == "ANSVARLIG":
-                contactfortasks.add(uuid)
+        tasks.add(uuid)
 
     if len(tasks):
         orgunit["Tasks"] = list(sorted(tasks))
-
-    if len(contactfortasks):
-        orgunit["ContactForTasks"] = list(sorted(contactfortasks))
 
 
 def get_sts_orgunit(uuid):
