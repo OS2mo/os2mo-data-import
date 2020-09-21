@@ -46,8 +46,12 @@ Lint AD Integration:
     - python -m isort --check-only tests/* utils.py
 
 
-
-
+Lint OPUS Org Tree Print:
+  extends: .lint-python
+  script:
+    - cd integrations/opus/org_tree_print/
+    - python -m black --line-length 85 --diff *.py
+    - python -m isort --check-only *.py
 
 
 # Test stage
@@ -75,4 +79,16 @@ Test AD Integration:
 Test OS2Sync Integration:
   extends: .test-python
   script:
-    - python -m doctest integrations/os2sync/os2mo.py
+    - python -m doctest -v integrations/os2sync/os2mo.py
+
+
+Test CPR Mapper:
+  extends: .test-python
+  script:
+    - python -m doctest -v integrations/cpr_mapper.py
+
+
+Test OPUS Org Tree Print:
+  extends: .test-python
+  script:
+    - python -m doctest -v integrations/opus/org_tree_print/main.py
