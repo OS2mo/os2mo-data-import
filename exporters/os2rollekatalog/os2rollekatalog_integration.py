@@ -136,10 +136,7 @@ def get_org_units(connector):
             if not person:
                 return None
 
-            ad_guid, sam_account_name = get_employee_from_map(person["uuid"])
-            if not ad_guid or not sam_account_name:
-                # Only import users who are in AD
-                return {}
+            _, sam_account_name = get_employee_from_map(person["uuid"])
 
             return {"uuid": manager["uuid"], "userId": sam_account_name}
 
@@ -201,14 +198,10 @@ def get_users(connector):
                 )
             return converted_positions
 
-        ad_guid, sam_account_name = get_employee_from_map(employee_uuid)
-
-        if not ad_guid or not sam_account_name:
-            # Only import users who are in AD
-            continue
+        _, sam_account_name = get_employee_from_map(employee_uuid)
 
         payload = {
-            "extUuid": ad_guid,
+            "extUuid": employee['uuid'],
             "userId": sam_account_name,
             "name": employee["name"],
             "email": get_employee_email(*e_connectors),
