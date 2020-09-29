@@ -86,13 +86,11 @@ class MODataSource(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
+    def get_manager_uuid(self, mo_user, eng_uuid):
         """Get UUID of the relevant manager for the user.
 
         Args:
             mo_user: MO user object, as returned by read_user.
-            eng_org_unit: UUID of the organisation unit for the engagement,
-                          as returned by find_primary_engagement.
             eng_uuid: UUID of the engagement, as returned by find_primary_engagement.
 
         Returns:
@@ -169,10 +167,7 @@ class LoraCacheSource(MODataSource):
         eng_uuid = primary_engagement['uuid']
         return employment_number, title, eng_org_unit, eng_uuid
 
-    def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
-        return self.mo_rest_source.get_manager_uuid(mo_user, eng_org_unit, eng_uuid)
-        # XXX: This implementation is not equivalent with mo_rest_source
-        # TODO: Fix this and reactivate it
+    def get_manager_uuid(self, mo_user, eng_uuid):
         try:
             def org_uuid_parent(org_uuid):
                 parent_uuid = self.lc.units[org_uuid][0]['parent']
@@ -185,12 +180,18 @@ class LoraCacheSource(MODataSource):
                 ][0]['user']
                 return manager_uuid
 
+            # Compatibility to mimic MORESTSource behaviour
+            # MORESTSource does an engagement lookup in the present, using
+            # the org uuid from that and fails if it doesn't find anything
+            engagement = self.lc.engagements[eng_uuid][0]
+            eng_org_unit = engagement['unit']
+
             manager_uuid = org_uuid_to_manager(eng_org_unit)
 
             parent_uuid = org_uuid_parent(eng_org_unit)
             while manager_uuid == mo_user['uuid']:
                 if parent_uuid is None:
-                    return None
+                    return manager_uuid
 
                 msg = 'Self manager, keep searching: {}!'
                 logger.info(msg.format(mo_user))
@@ -245,7 +246,7 @@ class MORESTSource(MODataSource):
         eng_uuid = primary_engagement['uuid']
         return employment_number, title, eng_org_unit, eng_uuid
 
-    def get_manager_uuid(self, mo_user, eng_org_unit, eng_uuid):
+    def get_manager_uuid(self, mo_user, eng_uuid):
         try:
             manager = self.helper.read_engagement_manager(eng_uuid)
             manager_uuid = manager['uuid']
@@ -525,7 +526,7 @@ class ADWriter(AD):
         }
         if read_manager:
             manager_uuid = self.datasource.get_manager_uuid(
-                mo_user, eng_org_unit, eng_uuid
+                mo_user, eng_uuid
             )
             if manager_uuid is None:
                 logger.info('No managers found')
