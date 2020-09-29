@@ -46,7 +46,6 @@ def _find_class(find_facet, find_class):
             CACHE[find_class] = uuid
     if uuid:
         return uuid
-    print(response['data']['items'])
     raise Exception("Der blev ikke fundet et uuid for denne" )
 
 
@@ -160,8 +159,7 @@ def _create_mo_association(user, org_unit, association_type, from_string):
         ]
         url = BASE_URL + 'details/create'
         params = {'force': 1}
-        print(payload)
-        print(params)
+
         response = SESSION.post(url, json=payload, params=params)
         response.raise_for_status()
         uuid = response.json()
@@ -225,6 +223,8 @@ def create_udvalg(nodes, file_name):
                 '%Y-%m-%d'
             )
         except ValueError:
+            from_string = '1930-01-01'
+        except TypeError:
             from_string = '1930-01-01'
 
         if uuid:
@@ -293,7 +293,7 @@ if __name__ == '__main__':
 
     orgtyper_file = '/opt/settings/MED-org/MED-Organisation.csv'
     med_medlemmer_file = '/opt/settings/MED-org/MED-Medlemmer.csv'
-
+    
     if True:
         nodes = create_tree(orgtyper_file)
         with open('nodes.p', 'wb') as f:
