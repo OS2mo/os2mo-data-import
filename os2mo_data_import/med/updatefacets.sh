@@ -17,3 +17,5 @@ ${CLI} ensure-class-exists --bvn "MED-Næstformand" --title "MED-Næstformand" -
 ${CLI} ensure-class-exists --bvn "MED-Formand" --title "MED-Formand" --facet-bvn "association_type"
 ${CLI} ensure-class-exists --bvn "MED-Medlem" --title "MED-Medlem" --facet-bvn "association_type"
 ${CLI} ensure-class-exists --bvn "MED-Medlem-suppleant" --title "MED-Medlem-suppleant" --facet-bvn "association_type"
+
+${CLI} ensure-class-exists --bvn "MED-enhed" --title "MED-enhed" --facet-bvn "org_unit_level"
