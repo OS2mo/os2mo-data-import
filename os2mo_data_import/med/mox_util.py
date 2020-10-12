@@ -22,7 +22,7 @@ def settings_loader(ctx, settings_file: str):
 
     This command-level only serves to load settings files for the lower command
     levels, so please refer to the `cli` level for the actual functionality.
-    
+
     Please run: python mox_util.py cli
     """
     #    # Not available until click 8
@@ -76,8 +76,8 @@ def print_created(uuid: str, created: bool) -> None:
     The color of the output follows Ansibles changed / unchanged coor scheme.
     """
     output_map = {
-        False: {"message": "exists", "color": "green",},
-        True: {"message": "created", "color": "yellow",},
+        False: {"message": "exists", "color": "green", },
+        True: {"message": "created", "color": "yellow", },
     }
     output = output_map[created]
     click.secho(uuid + " " + output["message"], fg=output["color"])
@@ -158,6 +158,53 @@ async def ensure_class_exists(
     # POST for non-dry
     uuid, created = await mox_helper.get_or_create_klassifikation_klasse(klasse)
     print_created(uuid, created)
+
+
+# update class
+@cli.command()
+@click.pass_context
+@click.option(
+    "--bvn",
+    "--brugervendt-nøgle",
+    required=True,
+    help="User key to set on the class.",
+)
+@click.option("--variable", required=True,  help="variable to be updated")
+@click.option(
+    "--new_value",required=True, help="New value to push to lora"
+)
+@click.option("--description", help="Description to set on the class.")
+
+@click.option(
+    "--dry-run",
+    default=False,
+    is_flag=True,
+    help="Dry run and print the generated object.",
+)
+@async_to_sync
+async def update_class_value(
+    ctx,
+    bvn: str,
+    variable: str,
+    new_value: str,
+    description: str,
+    dry_run: bool,
+):
+    """Updates values"""
+    mox_helper = await create_mox_helper(ctx.obj["mox.base"])
+
+ 
+    # Print for dry run
+    if dry_run:
+        # mox_helper.validate_klassifikation_klasse(klasse)
+        # message = json.dumps(klasse, indent=4, sort_keys=True)
+        # click.secho(message, fg="green")
+        return
+
+    # POST for non-dry
+    uuid = await mox_helper.update_klassifikation_klasse(bvn, variable, new_value)
+    print(uuid)
+#    print_created(uuid, created)
 
 
 @cli.command()

@@ -2,6 +2,7 @@ import asyncio
 from functools import partial
 from typing import Any, Sequence, Tuple
 from uuid import UUID
+from datetime import datetime
 
 import aiohttp
 from jsonschema import validate
@@ -31,6 +32,20 @@ def ensure_session(func):
                 return await func(self, session, *args, **kwargs)
 
     return _decorator
+
+def transform_infinity(o,variable, new_value):
+    """Recurse through output to transform Virkning time periods."""
+    if isinstance(o, dict):
+        if variable in o:
+            o[variable] = new_value
+            return o
+        return {k: transform_infinity(v,variable, new_value) for k, v in o.items()}
+    elif isinstance(o, list):
+        return [transform_infinity(v,variable, new_value) for v in o]
+    elif isinstance(o, tuple):
+        return tuple(transform_infinity(v,variable, new_value) for v in o)
+    else:
+        return o
 
 
 class ElementNotFound(Exception):
@@ -79,6 +94,8 @@ class MoxHelper:
             "create": self._create,
             "get_or_create": self._get_or_create,
             "validate": self._validate_payload,
+            "update": self._update,
+            "search": self._search,
         }
         schema_tasks = []
         for service, obj in service_tuples:
@@ -125,6 +142,24 @@ class MoxHelper:
         self._validate_payload(service, obj, payload)
         url = self.hostname + "/" + service + "/" + obj
         async with session.post(url, json=payload) as response:
+            return (await response.json())["uuid"]
+
+    @ensure_session
+    async def _update(
+        self, session: aiosession, service: str, obj: str, bvn:str, variable: str, new_value: str
+    ) -> UUIDstr:
+        uuid = await self._read_element(service, obj, {"bvn": bvn})
+        payload = await self._search(service, obj, {"UUID":uuid})
+        payload= payload[0]['registreringer'][0]
+        payload= {item:payload.get(item) for item in ('attributter', 'relationer', 'tilstande')}
+
+        payload=transform_infinity(payload, variable, new_value)
+
+        self._validate_payload(service, obj, payload)
+        url = self.hostname + "/" + service + "/" + obj + "/" + uuid
+      
+        async with session.patch(url, json=payload) as response:
+           
             return (await response.json())["uuid"]
 
     async def _read_uuid_list(self, service: str, obj: str) -> Sequence[UUIDstr]:
