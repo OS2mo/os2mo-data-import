@@ -41,7 +41,7 @@ def _find_class(find_facet, find_class):
     url = BASE_URL + 'o/{}/f/{}'
     response = SESSION.get(url.format(ROOT, find_facet)).json()
     for actual_class in response['data']['items']:
-        if actual_class['name'] == find_class:
+        if actual_class['user_key'] == find_class:
             uuid = actual_class['uuid']
             CACHE[find_class] = uuid
     if uuid:
