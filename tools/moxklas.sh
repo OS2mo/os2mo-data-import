@@ -9,7 +9,7 @@
 #
 # scriptet finder selv uuider for facet og organisation
 
-
+set -x
 
 facet_class_json(){
 	facet=$1
@@ -90,7 +90,7 @@ dry_run="$1"
 organisation=$(curl http://localhost:8080/organisation/organisation?bvn=% | jq -r .results[][])
 
 
-existing=$(curl http://localhost:8080/klassifikation/klasse?bvn=${bvn} | jq -r .results[][])
+existing=$(curl "http://localhost:8080/klassifikation/klasse?bvn=${bvn}&facet=${facet}" | jq -r .results[][])
 if [ -n "${existing}" ]; then
     echo "Brugervendt nøgle eksisterer"
     exit 1
