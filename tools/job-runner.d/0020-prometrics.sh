@@ -19,3 +19,20 @@ mo_end_time $(date +%s)
 mo_return_code $2
 EOF
 }
+
+prometrics-git(){
+if [ -z "$(git status --porcelain)" ]; then
+    local_changes=0
+else
+    local_changes=1
+fi
+
+git_sha=$(git log --pretty=format:"%h" -n 1)
+
+[ -z "${CRON_LOG_PROM_API}" ] && return 0
+cat <<EOF | curl -m 2 -sS --data-binary @- "${CRON_LOG_PROM_API}/$git_sha"
+# TYPE git_branch gauge
+# HELP git_branch  for last gitcommit
+git_hash $local_changes
+EOF
+}
