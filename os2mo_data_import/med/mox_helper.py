@@ -35,9 +35,14 @@ def ensure_session(func):
 
 def transform_infinity(o,variable, new_value):
     """Recurse through output to transform Virkning time periods."""
+    virkning = {
+        "from": datetime.now().strftime('%Y-%m-%d'),
+        "to": "infinity"
+    }
     if isinstance(o, dict):
         if variable in o:
             o[variable] = new_value
+            o['virkning'] = virkning
             return o
         return {k: transform_infinity(v,variable, new_value) for k, v in o.items()}
     elif isinstance(o, list):
@@ -154,7 +159,7 @@ class MoxHelper:
         payload= {item:payload.get(item) for item in ('attributter', 'relationer', 'tilstande')}
 
         payload=transform_infinity(payload, variable, new_value)
-
+     
         self._validate_payload(service, obj, payload)
         url = self.hostname + "/" + service + "/" + obj + "/" + uuid
       
