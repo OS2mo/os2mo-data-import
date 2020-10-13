@@ -180,7 +180,6 @@ async def ensure_class_exists(
     "--new_value",required=True, help="New value to push to lora"
 )
 @click.option("--description", help="Description to set on the class.")
-
 @click.option(
     "--dry-run",
     default=False,
@@ -199,7 +198,6 @@ async def update_class_value(
     """Updates values"""
     mox_helper = await create_mox_helper(ctx.obj["mox.base"])
 
- 
     # Print for dry run
     if dry_run:
         # mox_helper.validate_klassifikation_klasse(klasse)

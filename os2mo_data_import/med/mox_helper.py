@@ -156,17 +156,16 @@ class MoxHelper:
         self, session: aiosession, service: str, obj: str, bvn:str, variable: str, new_value: str
     ) -> UUIDstr:
         uuid = await self._read_element(service, obj, {"bvn": bvn})
-        payload = await self._search(service, obj, {"UUID":uuid})
-        payload= payload[0]['registreringer'][0]
-        payload= {item:payload.get(item) for item in ('attributter', 'relationer', 'tilstande')}
+        payload = await self._search(service, obj, {"UUID": uuid})
+        payload = payload[0]['registreringer'][0]
+        payload = {item: payload.get(item) for item in ('attributter', 'relationer', 'tilstande')}
 
-        payload=transform_infinity(payload, variable, new_value)
+        payload = transform_infinity(payload, variable, new_value)
      
         self._validate_payload(service, obj, payload)
         url = self.hostname + "/" + service + "/" + obj + "/" + uuid
       
         async with session.patch(url, json=payload) as response:
-           
             return (await response.json())["uuid"]
 
     async def _read_uuid_list(self, service: str, obj: str) -> Sequence[UUIDstr]:

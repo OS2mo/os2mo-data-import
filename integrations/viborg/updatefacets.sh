@@ -19,7 +19,7 @@ ${CLI} ensure-class-exists --bvn "MED-Medlem-suppleant" --title "MED-Medlem-supp
 ${CLI} ensure-class-exists --bvn "MED-enhed" --title "MED-enhed" --facet-bvn "org_unit_level"
 
 
- ${CLI} update-class-value --bvn "Hoved-MED"  --variable titel --new_value "Hoved-MED"
+${CLI} update-class-value --bvn "Hoved-MED" --variable titel --new_value "Hoved-MED"
  ${CLI} update-class-value --bvn "Hoved-MED"  --variable brugervendtnoegle --new_value "HO-MED"
  ${CLI} update-class-value --bvn "Fælles-MED"  --variable titel --new_value "Fælles-MED"
  ${CLI} update-class-value --bvn "Fælles-MED"  --variable brugervendtnoegle --new_value "FÆ-MED"
@@ -31,5 +31,3 @@ ${CLI} ensure-class-exists --bvn "MED-enhed" --title "MED-enhed" --facet-bvn "or
  ${CLI} update-class-value --bvn "Lokal-MED"  --variable brugervendtnoegle --new_value "LO-MED"
  ${CLI} update-class-value --bvn "Personalemøder med MED-status"  --variable titel --new_value "Personalemøder med MED-status"
  ${CLI} update-class-value --bvn "Personalemøder med MED-status"  --variable brugervendtnoegle --new_value "PE-MED"
-
-

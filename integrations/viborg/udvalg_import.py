@@ -1,15 +1,15 @@
-import uuid
 import csv
-import pickle
-import logging
-import hashlib
-import requests
 import datetime
-import pathlib
+import hashlib
 import json
-
-from anytree import Node
+import logging
+import pathlib
+import pickle
+import uuid
 from logging.handlers import RotatingFileHandler
+
+import requests
+from anytree import Node
 from chardet.universaldetector import UniversalDetector
 
 INFO_LEVEL = 20
@@ -30,8 +30,6 @@ activity_log_handler = RotatingFileHandler(
 activity_log_handler.setFormatter(log_format)
 activity_log_handler.setLevel(INFO_LEVEL)
 logger.addHandler(activity_log_handler)
-
-
 
 
 def _find_class(find_facet, find_class):
@@ -63,7 +61,7 @@ def _find_org():
     response = SESSION.get(url).json()
     assert(len(response) == 1)
     uuid = response[0]['uuid']
-    return(uuid)
+    return uuid
 
 
 def _search_mo_name(name, user_key):
