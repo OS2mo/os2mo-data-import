@@ -212,7 +212,13 @@ async def ensure_class_value(
     """Ensures values"""
     mox_helper = await create_mox_helper(ctx.obj["mox.base"])
 
-    uuid = await mox_helper.read_element_klassifikation_klasse({"bvn": bvn})
+    try:
+        uuid = await mox_helper.read_element_klassifikation_klasse({"bvn": bvn})
+    except:
+        message=f"No class with bvn={bvn} was found."
+        click.secho(message, fg="red")    
+        return
+
     klasse = await mox_helper.search_klassifikation_klasse({"UUID": uuid})
     klasse = klasse[0]['registreringer'][0]
     klasse = {item: klasse.get(item) for item in ('attributter', 'relationer', 'tilstande')}
