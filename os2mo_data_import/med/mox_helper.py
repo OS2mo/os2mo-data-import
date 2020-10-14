@@ -34,7 +34,6 @@ def ensure_session(func):
     return _decorator
 
 
-
 class ElementNotFound(Exception):
     pass
 
