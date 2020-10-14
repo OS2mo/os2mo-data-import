@@ -3,7 +3,6 @@ from functools import partial
 from itertools import product
 from typing import Any, Sequence, Tuple
 from uuid import UUID
-from datetime import datetime
 
 import aiohttp
 from jsonschema import validate
@@ -34,24 +33,6 @@ def ensure_session(func):
 
     return _decorator
 
-def transform_infinity(o,variable, new_value):
-    """Recurse through output to transform Virkning time periods."""
-    virkning = {
-        "from": datetime.now().strftime('%Y-%m-%d'),
-        "to": "infinity"
-    }
-    if isinstance(o, dict):
-        if variable in o:
-            o[variable] = new_value
-            o['virkning'] = virkning
-            return o
-        return {k: transform_infinity(v,variable, new_value) for k, v in o.items()}
-    elif isinstance(o, list):
-        return [transform_infinity(v,variable, new_value) for v in o]
-    elif isinstance(o, tuple):
-        return tuple(transform_infinity(v,variable, new_value) for v in o)
-    else:
-        return o
 
 
 class ElementNotFound(Exception):
@@ -153,14 +134,8 @@ class MoxHelper:
 
     @ensure_session
     async def _update(
-        self, session: aiosession, service: str, obj: str, bvn:str, variable: str, new_value: str
+        self, session: aiosession, service: str, obj: str,uuid:str, payload: Any
     ) -> UUIDstr:
-        uuid = await self._read_element(service, obj, {"bvn": bvn})
-        payload = await self._search(service, obj, {"UUID": uuid})
-        payload = payload[0]['registreringer'][0]
-        payload = {item: payload.get(item) for item in ('attributter', 'relationer', 'tilstande')}
-
-        payload = transform_infinity(payload, variable, new_value)
      
         self._validate_payload(service, obj, payload)
         url = self.hostname + "/" + service + "/" + obj + "/" + uuid

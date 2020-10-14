@@ -3,6 +3,7 @@ import sys
 import asyncio
 from typing import Tuple
 from operator import itemgetter
+from datetime import datetime
 
 import click
 
@@ -76,14 +77,27 @@ def cli(ctx, mox_base: str):
 def print_created(uuid: str, created: bool) -> None:
     """Output uuid followed by created or exists.
 
-    The color of the output follows Ansibles changed / unchanged coor scheme.
+    The color of the output follows Ansibles changed / unchanged color scheme.
     """
     output_map = {
-        False: {"message": "exists", "color": "green", },
-        True: {"message": "created", "color": "yellow", },
+        False: {"message": "exists", "color": "green",},
+        True: {"message": "created", "color": "yellow",},
     }
     output = output_map[created]
     click.secho(uuid + " " + output["message"], fg=output["color"])
+
+def print_changed(uuid: str, changed: bool) -> None:
+    """Output uuid followed by not changed or changed.
+
+    The color of the output follows Ansibles changed / unchanged color scheme.
+    """
+    output_map = {
+        False: {"message": "not changed", "color": "green",},
+        True: {"message": "Changed", "color": "yellow",},
+    }
+    output = output_map[changed]
+    click.secho(uuid + " " + output["message"], fg=output["color"])
+
 
 
 @cli.command()
@@ -166,7 +180,7 @@ async def ensure_class_exists(
     print_created(uuid, created)
 
 
-# update class
+# ensure class value
 @cli.command()
 @click.pass_context
 @click.option(
@@ -175,9 +189,9 @@ async def ensure_class_exists(
     required=True,
     help="User key to set on the class.",
 )
-@click.option("--variable", required=True,  help="variable to be updated")
+@click.option("--variable", required=True,  help="variable to be checked/updated")
 @click.option(
-    "--new_value",required=True, help="New value to push to lora"
+    "--new_value",required=True, help="Value which should be checked/updated."
 )
 @click.option("--description", help="Description to set on the class.")
 @click.option(
@@ -187,7 +201,7 @@ async def ensure_class_exists(
     help="Dry run and print the generated object.",
 )
 @async_to_sync
-async def update_class_value(
+async def ensure_class_value(
     ctx,
     bvn: str,
     variable: str,
@@ -195,20 +209,53 @@ async def update_class_value(
     description: str,
     dry_run: bool,
 ):
-    """Updates values"""
+    """Ensures values"""
     mox_helper = await create_mox_helper(ctx.obj["mox.base"])
 
+    uuid = await mox_helper.read_element_klassifikation_klasse({"bvn": bvn})
+    klasse = await mox_helper.search_klassifikation_klasse({"UUID": uuid})
+    klasse = klasse[0]['registreringer'][0]
+    klasse = {item: klasse.get(item) for item in ('attributter', 'relationer', 'tilstande')}
+
+    global changed
+    changed=False
+    virkning = {
+            "from": datetime.now().strftime('%Y-%m-%d'),
+            "to": "infinity"
+        }
+    def check_value(o,variable, new_value): 
+        """Recurse through object to ensure correct value "new_value" in "variable"."""
+        global changed   
+        if isinstance(o, dict):
+            if variable in o:
+                if o[variable] == new_value:
+                    changed=False
+                    return o
+                o[variable] = new_value
+                o['virkning'] = virkning
+                changed = True
+                return o
+            return {k: check_value(v,variable, new_value) for k, v in o.items()}
+        elif isinstance(o, list):
+            return [check_value(v,variable, new_value) for v in o]
+        elif isinstance(o, tuple):
+            return tuple(check_value(v,variable, new_value) for v in o)
+        else:
+            return o
+
+
+    klasse = check_value(klasse, variable, new_value)
     # Print for dry run
     if dry_run:
-        # mox_helper.validate_klassifikation_klasse(klasse)
-        # message = json.dumps(klasse, indent=4, sort_keys=True)
-        # click.secho(message, fg="green")
+        mox_helper.validate_klassifikation_klasse(klasse)
+        message = json.dumps(klasse, indent=4, sort_keys=True)
+        click.secho(message, fg="green")
         return
 
     # POST for non-dry
-    uuid = await mox_helper.update_klassifikation_klasse(bvn, variable, new_value)
-    print(uuid)
-#    print_created(uuid, created)
+    if changed:
+        uuid = await mox_helper.update_klassifikation_klasse(uuid,klasse)
+    print_changed(uuid, changed)
 
 
 @cli.command()
