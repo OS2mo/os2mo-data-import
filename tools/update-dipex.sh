@@ -22,6 +22,9 @@ git log --pretty=oneline ${old_git}..${new_git}
 source tools/job-runner.sh
 prometrics-git
 
+#Add githooks
+git config core.hooksPath .githooks
+
 # NOTE: If you get an error, check if the following packages are installed:
 # * sudo apt-get install unixodbc-dev freetds-dev unixodbc tdsodbc libkrb5-dev libmysqlclient-dev
 # Required for development
