@@ -23,7 +23,7 @@ source tools/job-runner.sh
 prometrics-git
 
 #Add githooks
-git config core.hooksPath .githooks
+find .git/hooks -type l -exec rm {} \; && find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 # THIS COMMENT IS ONLY MEANT TO TEST GITHOOKS
 
 
