@@ -24,8 +24,6 @@ prometrics-git
 
 #Add githooks
 find .git/hooks -type l -exec rm {} \; && find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
-# THIS COMMENT IS ONLY MEANT TO TEST GITHOOKS
-
 
 # NOTE: If you get an error, check if the following packages are installed:
 # * sudo apt-get install unixodbc-dev freetds-dev unixodbc tdsodbc libkrb5-dev libmysqlclient-dev
