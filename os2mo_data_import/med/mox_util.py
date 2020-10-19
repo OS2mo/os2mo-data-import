@@ -224,34 +224,36 @@ async def ensure_class_value(
     klasse = klasse[0]['registreringer'][0]
     klasse = {item: klasse.get(item) for item in ('attributter', 'relationer', 'tilstande')}
 
-    global changed
-    changed=False
     virkning = {
         "from": datetime.now().strftime('%Y-%m-%d'),
         "to": "infinity"
     }
-    def check_value(o,variable, new_value): 
+    from more_itertools import unzip
+    from functools import partial
+
+    def check_value(variable, new_value, o):
         """Recurse through object to ensure correct value "new_value" in "variable"."""
-        global changed   
+        seeded_check_value = partial(check_value, variable, new_value)
         if isinstance(o, dict):
             if variable in o:
                 if o[variable] == new_value:
-                    changed=False
-                    return o
+                    return o, False
                 o[variable] = new_value
                 o['virkning'] = virkning
-                changed = True
-                return o
-            return {k: check_value(v,variable, new_value) for k, v in o.items()}
+                return o, True
+            keys, values = unzip(o.items())
+            values, changed = unzip(map(seeded_check_value, values))
+            return dict(zip(keys, values)), any(changed)
         elif isinstance(o, list):
-            return [check_value(v,variable, new_value) for v in o]
+            values, changed = unzip(map(seeded_check_value, o))
+            return list(values), any(changed)
         elif isinstance(o, tuple):
-            return tuple(check_value(v,variable, new_value) for v in o)
+            values, changed = unzip(map(seeded_check_value, o))
+            return tuple(values), any(changed)
         else:
-            return o
+            return o, False
 
-
-    klasse = check_value(klasse, variable, new_value)
+    klasse, changed = check_value(variable, new_value, klasse)
     # Print for dry run
     if dry_run:
         mox_helper.validate_klassifikation_klasse(klasse)
