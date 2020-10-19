@@ -1,16 +1,15 @@
+import asyncio
 import json
 import sys
-import asyncio
-from typing import Tuple
-from operator import itemgetter
 from datetime import datetime
+from operator import itemgetter
+from typing import Tuple
 
 import click
-
+from more_itertools import bucket, flatten
 from mox_helper import create_mox_helper
 from payloads import lora_facet, lora_klasse
 from utils import async_to_sync, dict_map
-from more_itertools import flatten, bucket
 
 
 @click.group()
@@ -227,8 +226,6 @@ async def ensure_class_value(
         "from": datetime.now().strftime('%Y-%m-%d'),
         "to": "infinity"
     }
-    from more_itertools import unzip
-    from functools import partial
 
     def check_value(variable, new_value, o):
         """Recurse through object to ensure correct value "new_value" in "variable"."""
