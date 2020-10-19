@@ -86,14 +86,15 @@ def print_created(uuid: str, created: bool) -> None:
     output = output_map[created]
     click.secho(uuid + " " + output["message"], fg=output["color"])
 
+
 def print_changed(uuid: str, changed: bool) -> None:
     """Output uuid followed by not changed or changed.
 
     The color of the output follows Ansibles changed / unchanged color scheme.
     """
     output_map = {
-        False: {"message": "not changed", "color": "green",},
-        True: {"message": "Changed", "color": "yellow",},
+        False: {"message": "unchanged", "color": "green",},
+        True: {"message": "changed", "color": "yellow",},
     }
     output = output_map[changed]
     click.secho(uuid + " " + output["message"], fg=output["color"])
@@ -226,9 +227,9 @@ async def ensure_class_value(
     global changed
     changed=False
     virkning = {
-            "from": datetime.now().strftime('%Y-%m-%d'),
-            "to": "infinity"
-        }
+        "from": datetime.now().strftime('%Y-%m-%d'),
+        "to": "infinity"
+    }
     def check_value(o,variable, new_value): 
         """Recurse through object to ensure correct value "new_value" in "variable"."""
         global changed   
@@ -260,7 +261,7 @@ async def ensure_class_value(
 
     # POST for non-dry
     if changed:
-        uuid = await mox_helper.update_klassifikation_klasse(uuid,klasse)
+        uuid = await mox_helper.update_klassifikation_klasse(uuid, klasse)
     print_changed(uuid, changed)
 
 
