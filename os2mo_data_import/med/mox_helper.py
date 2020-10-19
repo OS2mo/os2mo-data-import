@@ -135,7 +135,6 @@ class MoxHelper:
     async def _update(
         self, session: aiosession, service: str, obj: str,uuid:str, payload: Any
     ) -> UUIDstr:
-     
         self._validate_payload(service, obj, payload)
         url = self.hostname + "/" + service + "/" + obj + "/" + uuid
       

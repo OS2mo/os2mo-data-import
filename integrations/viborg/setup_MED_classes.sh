@@ -15,7 +15,7 @@ ${CLI} ensure-class-exists --bvn "LO-MED" --title "Lokal-MED" --facet-bvn "org_u
 ${CLI} ensure-class-exists --bvn "PE-MED" --title "Personalemøder med MED-status" --facet-bvn "org_unit_type"
 
 # Association Types
-#------------------------
+#------------------
 ${CLI} ensure-class-exists --bvn "MED-Tillidsrepræsentant" --title "MED-Tillidsrepræsentant" --facet-bvn "association_type"
 ${CLI} ensure-class-exists --bvn "MED-Arbejdsmiljørepræsentant" --title "MED-Arbejdsmiljørepræsentant" --facet-bvn "association_type"
 ${CLI} ensure-class-exists --bvn "MED-Næstformand" --title "MED-Næstformand" --facet-bvn "association_type"
@@ -24,7 +24,5 @@ ${CLI} ensure-class-exists --bvn "MED-Medlem" --title "MED-Medlem" --facet-bvn "
 ${CLI} ensure-class-exists --bvn "MED-Medlem-suppleant" --title "MED-Medlem-suppleant" --facet-bvn "association_type"
 
 # org_unit_level
-#------------------------
+#---------------
 ${CLI} ensure-class-exists --bvn "MED-enhed" --title "MED-enhed" --facet-bvn "org_unit_level"
-
-

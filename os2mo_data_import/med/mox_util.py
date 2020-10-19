@@ -100,7 +100,6 @@ def print_changed(uuid: str, changed: bool) -> None:
     click.secho(uuid + " " + output["message"], fg=output["color"])
 
 
-
 @cli.command()
 @click.pass_context
 @click.option(
