@@ -49,20 +49,15 @@ class KLEAnnotationIntegration(ABC):
         self.settings = json.loads(cfg_file.read_text())
 
         self.mora_base = self.settings.get("mora.base")
-        self.mora_session = self._get_mora_session(
-            token=os.environ.get("SAML_TOKEN"))
+        self.mora_session = self._get_mora_session(token=os.environ.get("SAML_TOKEN"))
         self.org_uuid = self._get_mo_org_uuid()
 
         kle_classes = self.get_kle_classes_from_mo()
-        self.kle_uuid_map = {
-            item["user_key"]: item["uuid"]
-            for item in kle_classes
-        }
+        self.kle_uuid_map = {item["user_key"]: item["uuid"] for item in kle_classes}
 
         aspect_classes = self.get_aspect_classes_from_mo()
         self.aspect_map = {
-            ASPECT_MAP[clazz["scope"]]: clazz["uuid"]
-            for clazz in aspect_classes
+            ASPECT_MAP[clazz["scope"]]: clazz["uuid"] for clazz in aspect_classes
         }
 
     def _get_mora_session(self, token) -> requests.Session:
@@ -273,16 +268,14 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
             for kle_number in info["PERFORMING"]:
                 kle_uuid = self.kle_uuid_map.get(kle_number)
                 if not kle_uuid:
-                    logger.warning(
-                        "KLE number '{}' doesn't exist".format(kle_number))
+                    logger.warning("KLE number '{}' doesn't exist".format(kle_number))
                     continue
                 values = org_unit.setdefault(kle_uuid, set())
                 values.add(Aspects.Udfoerende)
             for kle_number in info["INTEREST"]:
                 kle_uuid = self.kle_uuid_map.get(kle_number)
                 if not kle_uuid:
-                    logger.warning(
-                        "KLE number '{}' doesn't exist".format(kle_number))
+                    logger.warning("KLE number '{}' doesn't exist".format(kle_number))
                     continue
                 values = org_unit.setdefault(kle_uuid, set())
                 values.add(Aspects.Indsigt)
@@ -327,8 +320,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
             kle_number = item["kle"]["number"]
             kle_uuid = self.kle_uuid_map.get(kle_number)
             if not kle_uuid:
-                logger.warning(
-                    "KLE number '{}' doesn't exist".format(kle_number))
+                logger.warning("KLE number '{}' doesn't exist".format(kle_number))
                 continue
 
             values = org_unit.setdefault(kle_uuid, set())
@@ -337,17 +329,13 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
     def build_delete_payload(self, mo_uuid):
         return {
             "uuid": mo_uuid,
-            "validity": {
-                "from": "1920-01-01",
-                "to": str(datetime.date.today())
-            },
+            "validity": {"from": "1920-01-01", "to": str(datetime.date.today())},
             "type": "kle",
         }
         pass
 
     def build_create_payload(self, org_unit_uuid, kle_number, kle_aspects):
-        kle_payload = self.build_kle_payload(org_unit_uuid, kle_number,
-                                             kle_aspects)
+        kle_payload = self.build_kle_payload(org_unit_uuid, kle_number, kle_aspects)
 
         payload = {
             **kle_payload,
@@ -355,10 +343,8 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         }
         return payload
 
-    def build_edit_payload(self, org_unit_uuid, kle_number, kle_aspects,
-                           obj_uuid):
-        kle_payload = self.build_kle_payload(org_unit_uuid, kle_number,
-                                             kle_aspects)
+    def build_edit_payload(self, org_unit_uuid, kle_number, kle_aspects, obj_uuid):
+        kle_payload = self.build_kle_payload(org_unit_uuid, kle_number, kle_aspects)
 
         payload = {
             "data": {
@@ -408,13 +394,12 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         aspect_map = {
             'Udførende': Aspects.Udfoerende,
             'Indsigt': Aspects.Indsigt,
-            'Ansvarlig': Aspects.Ansvarlig
+            'Ansvarlig': Aspects.Ansvarlig,
         }
 
         for row in mo_kle:
             org_unit = org_unit_map.setdefault(row.enhed_uuid, {})
-            _, aspects = org_unit.setdefault(row.kle_nummer_uuid,
-                                                   (row.uuid, set()))
+            _, aspects = org_unit.setdefault(row.kle_nummer_uuid, (row.uuid, set()))
             aspect = aspect_map[row.kle_aspekt_titel]
             aspects.add(aspect)
 
@@ -433,8 +418,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         deleted_uuids = {
             row.uuid
             for row in mo_kle
-            if not org_unit_map.get(
-                row.enhed_uuid, {}).get(row.kle_nummer_uuid)
+            if not org_unit_map.get(row.enhed_uuid, {}).get(row.kle_nummer_uuid)
         }
         deleted = [self.build_delete_payload(uuid) for uuid in deleted_uuids]
 
@@ -451,15 +435,14 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
                 mo_info = mo_kle_org_unit_map.get(unit, {}).get(kle_number)
                 if not mo_info:
                     # New object
-                    new.append(self.build_create_payload(unit, kle_number,
-                                                         aspects))
+                    new.append(self.build_create_payload(unit, kle_number, aspects))
                 else:
                     obj_uuid, mo_aspects = mo_info
                     if mo_aspects != aspects:
                         # Updated object
                         updated.append(
-                            self.build_edit_payload(unit, kle_number,
-                                                    aspects, obj_uuid))
+                            self.build_edit_payload(unit, kle_number, aspects, obj_uuid)
+                        )
 
         return deleted, new, updated
 
@@ -469,8 +452,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         logger.info("{} new KLE objects".format(len(create_payloads)))
         url = "{}/service/details/create".format(self.mora_base)
 
-        r = self.mora_session.post(url, json=create_payloads,
-                                   params={"force": 1})
+        r = self.mora_session.post(url, json=create_payloads, params={"force": 1})
         r.raise_for_status()
 
     def handle_update(self, edit_payloads: list):
@@ -478,19 +460,16 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         logger.info("{} updated KLE objects".format(len(edit_payloads)))
         url = "{}/service/details/edit".format(self.mora_base)
 
-        r = self.mora_session.post(url, json=edit_payloads,
-                                   params={"force": 1})
+        r = self.mora_session.post(url, json=edit_payloads, params={"force": 1})
         r.raise_for_status()
 
     def handle_delete(self, delete_payloads: list):
         """Terminate KLE org functions"""
 
-        logger.info(
-            "{} KLE objects to be terminated".format(len(delete_payloads)))
+        logger.info("{} KLE objects to be terminated".format(len(delete_payloads)))
         url = "{}/service/details/terminate".format(self.mora_base)
 
-        r = self.mora_session.post(url, json=delete_payloads,
-                                   params={"force": 1})
+        r = self.mora_session.post(url, json=delete_payloads, params={"force": 1})
         r.raise_for_status()
 
     def run(self):
