@@ -84,3 +84,9 @@ Test SDLoen Integration:
     - cp settings/kommune-andeby.json settings/settings.json
     - export PYTHONPATH=$PWD:$PYTHONPATH
     - pytest integrations/SD_Lon/tests/
+
+Test Reports:
+  extends: .test-python
+  script:
+    - python -m pytest reports/os2mo_tests/test_frederikshavn_MED_XLSX.py
+    
