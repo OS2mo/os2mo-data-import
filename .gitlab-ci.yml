@@ -59,7 +59,7 @@ Lint AD Integration:
   image: python:3.5
   services: []
   before_script:
-    - apt install -y build-essential unixodbc
+    - apt-get update && apt-get install -y build-essential unixodbc
     - pip install ./os2mo_data_import --upgrade
     - find . -name 'requirements.*' | grep -v venv/ | xargs -t -n1 pip install -r
   tags:
