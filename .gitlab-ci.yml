@@ -61,6 +61,7 @@ Lint AD Integration:
   before_script:
     - pip install ./os2mo_data_import --upgrade
     - pip install -r integrations/requirements/test.txt
+    - pip install -r exporters/os2phonebook/requirements.txt
   tags:
     - docker
 
