@@ -141,9 +141,8 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         s.headers.update({"Authorization": "Basic {}".format(token)})
         return s
 
-    def get_kle_from_source(self, kle_numbers: list) -> list:
-        """
-        Get all KLE-number info from OS2opgavefordeler
+    def get_kle_info_from_opgavefordeler(self, kle_numbers: list) -> list:
+        """Get all KLE-number info from OS2opgavefordeler
 
         This will give information on which unit is 'Ansvarlig' for a certain
         KLE-number.
@@ -176,9 +175,8 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         logger.info("Found {} items".format(len(filtered)))
         return filtered
 
-    def get_org_unit_info_from_source(self, org_units_uuids: list) -> list:
-        """
-        Get all org-unit info from OS2opgavefordeler
+    def get_org_unit_info_from_opgavefordeler(self, org_units_uuids: list) -> list:
+        """Get all org-unit info from OS2opgavefordeler
 
         This will give information about which KLE-numbers the unit has a
         'Udførende' and 'Indsigt' relationship with.
@@ -207,9 +205,8 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         logger.info("Found {} items".format(len(filtered)))
         return filtered
 
-    def build_opgavefordeler_org_unit_map(self):
-        """
-        Build a map of opgavefordeler data
+    def build_org_unit_maps(self):
+        """Build a map of opgavefordeler data
 
         For each org unit, list each KLE-number associated and which aspects
         are connected to the KLE-number
@@ -225,23 +222,36 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
             ...
         }
         """
-        org_unit_map = {}
-
         # Ansvarlig
-        kle_info = self.get_kle_from_source(list(self.kle_uuid_map.keys()))
-        self.add_ansvarlig(org_unit_map, kle_info)
+        opgavefordeler_ansvarlig = self.get_kle_info_from_opgavefordeler(
+            list(self.kle_uuid_map.keys())
+        )
+
+        ansvarlig = {
+            item["org"]["businessKey"]: self.kle_uuid_map.get(item["kle"]["number"])
+            for item in opgavefordeler_ansvarlig
+        }
 
         # Indsigt og Udfører
-        org_units = self.get_all_org_units_from_mo()
-        org_unit_uuids = [unit['uuid'] for unit in org_units]
-        org_unit_info = self.get_org_unit_info_from_source(org_unit_uuids)
-        self.add_indsigt_and_udfoerer(org_unit_map, org_unit_info)
+        org_unit_uuids = [unit["uuid"] for unit in self.get_all_org_units_from_mo()]
+        org_unit_info = self.get_org_unit_info_from_opgavefordeler(org_unit_uuids)
 
-        return org_unit_map
+        indsigt = {
+            org_unit_uuid: self.kle_uuid_map.get(kle)
+            for org_unit_uuid, info in org_unit_info
+            for kle in info.get("INTEREST")
+        }
+
+        udfoerende = {
+            org_unit_uuid: self.kle_uuid_map.get(kle)
+            for org_unit_uuid, info in org_unit_info
+            for kle in info.get("PERFORMING")
+        }
+
+        return ansvarlig, indsigt, udfoerende
 
     def add_indsigt_and_udfoerer(self, org_unit_map: dict, org_unit_info: list):
-        """
-        Add 'Indsigt' and 'Udførende' to the org unit map
+        """Add 'Indsigt' and 'Udførende' to the org unit map
 
         org_unit_info lists 'Indsigt' and 'Udførende' info for each org unit
         uuid and is on the form:
@@ -259,7 +269,6 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
           ],
           ...
         ]
-
         """
         logger.info('Adding "Indsigt" and "Udførende"')
         for item in org_unit_info:
@@ -281,8 +290,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
                 values.add(Aspects.Indsigt)
 
     def add_ansvarlig(self, org_unit_map: dict, kle_info: list):
-        """
-        Add ansvarlig to the org unit map.
+        """Add ansvarlig to the org unit map.
 
         KLE-data has one entry per KLE-number and is on the form:
         [
@@ -332,7 +340,6 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
             "validity": {"from": "1920-01-01", "to": str(datetime.date.today())},
             "type": "kle",
         }
-        pass
 
     def build_create_payload(self, org_unit_uuid, kle_number, kle_aspects):
         kle_payload = self.build_kle_payload(org_unit_uuid, kle_number, kle_aspects)
@@ -368,8 +375,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         return payload
 
     def convert_mo_kle_to_org_unit_map(self, mo_kle):
-        """
-        Convert KLE objects from SQL cache to a similar org_unit_map
+        """Convert KLE objects from SQL cache to a similar org_unit_map
         format as Opgavefordeler data, with added OS2mo object UUIDs
 
         The general structure is listed below
@@ -405,7 +411,7 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
 
         return org_unit_map
 
-    def create_diff(self, org_unit_map):
+    def create_diff(self, ansvarlig, indsigt, udfoerende):
         """Compare Opgavefordeler data with existing OS2mo data and
         determine what should be deleted, created and updated"""
 
@@ -476,10 +482,10 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         logger.info("Starting import")
 
         # Generate a map of data from opgavefordeler
-        org_unit_map = self.build_opgavefordeler_org_unit_map()
+        ansvarlig, indsigt, udfoerende = self.build_org_unit_maps()
 
         # Generate a diff towards OS2mo
-        deleted, new, updated = self.create_diff(org_unit_map)
+        deleted, new, updated = self.create_diff(ansvarlig, indsigt, udfoerende)
 
         self.handle_new(new)
         self.handle_update(updated)
