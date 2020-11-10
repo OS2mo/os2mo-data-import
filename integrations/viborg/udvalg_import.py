@@ -124,7 +124,7 @@ def _create_mo_ou(name, parent, org_type, bvn):
     payload = {
         'uuid': uuid,
         'user_key': str(bvn),
-        'name':  name,
+        'name': '{} {}'.format(org_type, name),
         'org_unit_type': {'uuid': ou_type},
         'parent': {'uuid': parent},
         'validity': {'from': '1930-01-01',
