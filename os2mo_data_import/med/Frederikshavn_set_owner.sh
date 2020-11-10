@@ -5,9 +5,9 @@ MOX_URL="${MOX_URL:-http://localhost:8080}"
 
 CLI="venv/bin/python os2mo_data_import/med/mox_util.py cli --mox-base ${MOX_URL}"
 
-#Find UUID'er med: curl localhost:5001/service/o/${UUID}/children | jq .
-MED="6dc35977-710e-86c0-4d68-b13ea0b16910"
-MAIN="4f79e266-4080-4300-a800-000006180002"
+#Find UUID'er med: curl localhost:5001/service/o/a32e0b8d-4565-4280-8288-212b76cfac03/children | jq .
+MED="96d2125e-7f5d-454a-a564-ce8ccb0b2d95"
+MAIN="7ddf4346-ce24-6ba5-7620-a1e7162fda68"
 
 UUID=$(curl --silent localhost:5001/service/o/ | jq -r .[0].uuid)
 CLASSES=$(curl localhost:5001/service/o/${UUID}/f/association_type/)
