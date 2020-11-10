@@ -17,7 +17,8 @@ echo "Found ${TOTAL_CLASSES} association_types"
 LIST='"AMR" "AMR, næstformand" "FTR" "FTR, næstformand" "LR" "LR, formand" "Medarb.rep, næstformand" "Stedfortræder" "TR" "TR, næstformand"'
 
 echo $CLASSES | jq -c .data.items[] | while read line; do
-    NAME=$(echo $line | jq .user_key)
+    NAME=$(echo $line | jq .name)
+    BVN=$(echo $line | jq .user_key)
     NAME=${NAME//\"/}
     
     if [[ -z $(echo $LIST | grep -w "$NAME") ]]; then
@@ -26,5 +27,5 @@ echo $CLASSES | jq -c .data.items[] | while read line; do
         OWNER=$MAIN
     fi
     echo $NAME : $OWNER
-    ${CLI} ensure-class-value --bvn "${NAME}" --variable ejer --new_value "$OWNER" 
+    ${CLI} ensure-class-value --bvn "${BVN}" --variable ejer --new_value "$OWNER" 
 done
