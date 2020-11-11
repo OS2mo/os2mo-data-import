@@ -47,17 +47,28 @@ class AD(object):
         Returns:
             winrm.Session: if configured, otherwise None
         """
-        if self.all_settings['global']['winrm_host']:
-            session = Session(
-                'http://{}:5985/wsman'.format(
-                    self.all_settings['global']['winrm_host']
-                ),
-                transport='kerberos',
-                auth=(None, None)
-            )
-            return session
-        return None
-
+        method = self.all_settings["primary"]["method"]
+        if self.all_settings["global"]["winrm_host"]:
+            if method == "ntlm":
+                session = Session(
+                    "https://{}:5986/wsman".format(
+                        self.all_settings["global"]["winrm_host"]
+                    ),
+                    transport="ntlm",
+                    auth=(
+                        self.all_settings["primary"]["system_user"],
+                        self.all_settings["primary"]["system_password"],
+                    ),
+                    server_cert_validation="ignore",
+                )
+            else:
+                session = Session(
+                    "http://{}:5985/wsman".format(
+                        self.all_settings["global"]["winrm_host"]
+                    ),
+                    transport="kerberos",
+                    auth=(None, None),
+                )
     def _run_ps_script(self, ps_script):
         """
         Run a power shell script and return the result. If it fails, the

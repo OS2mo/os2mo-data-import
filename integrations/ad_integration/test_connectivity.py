@@ -17,6 +17,10 @@ if not cfg_file.is_file():
 # and no references should be needed in global scope.
 SETTINGS = json.loads(cfg_file.read_text())
 WINRM_HOST = SETTINGS.get('integrations.ad.winrm_host')
+WINRM_user = SETTINGS.get('integrations.ad.system_user')
+WINRM_password = SETTINGS.get('integrations.ad.password')
+# Assume kerberos but read settings to check for ntlm
+method = SETTINGS.get('integrations.ad.method') if  SETTINGS.get('integrations.ad.method') else 'kerberos'
 if not (WINRM_HOST):
     raise Exception('WINRM_HOST is missing')
 
@@ -24,11 +28,19 @@ logger = logging.getLogger('AdTestConnectivity')
 
 
 def test_basic_connectivity():
-    session = Session(
-        'http://{}:5985/wsman'.format(WINRM_HOST),
-        transport='kerberos',
-        auth=(None, None)
-    )
+    if method == 'kerberos':
+        session = Session(
+            'http://{}:5985/wsman'.format(WINRM_HOST),
+            transport='kerberos',
+            auth=(None, None)
+        )
+    elif method == 'ntlm':
+        session = Session(
+            'https://{}:5986/wsman'.format(WINRM_HOST),
+            transport='ntlm',
+            auth=(WINRM_user, WINRM_password),
+            server_cert_validation='ignore'
+        )
     try:
         r = session.run_cmd('ipconfig', ['/all'])
         error = None
