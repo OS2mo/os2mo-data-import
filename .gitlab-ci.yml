@@ -38,6 +38,14 @@ stages:
     - docker
 
 
+Lint LoraCache Integration:
+  extends: .lint-python
+  script:
+    - cd exporters/sql_export/
+    - python -m black --line-length 85 --check tests/*
+    - python -m isort --check-only tests/*
+
+
 Lint AD Integration:
   extends: .lint-python
   script:
@@ -46,17 +54,13 @@ Lint AD Integration:
     - python -m isort --check-only tests/* utils.py
 
 
-
-
-
-
 # Test stage
 ############
 
 .test-python:
   stage: test
   needs: []
-  image: python:3.5
+  image: python:3
   services: []
   before_script:
     - pip install ./os2mo_data_import --upgrade
@@ -72,20 +76,20 @@ Test LoraCache Exporter:
     - pytest exporters/sql_export/tests/
 
 
-Test AD Integration:
+.Test AD Integration:
   extends: .test-python
   script:
     - cd integrations/ad_integration/
     - pytest tests/
 
 
-Test OS2Sync Integration:
+.Test OS2Sync Integration:
   extends: .test-python
   script:
     - python -m doctest integrations/os2sync/os2mo.py
 
 
-Test SDLoen Integration:
+.Test SDLoen Integration:
   extends: .test-python
   script:
     - cp settings/kommune-andeby.json settings/settings.json
