@@ -207,7 +207,7 @@ def perform_write_test():
             if prop in minimum_expected_fields:
                 minimum_expected_fields[prop] = True
 
-    if False in minimum_expected_fields.values():
+    if not all(minimum_expected_fields.values()):
         print('An import field is now found on the tested users')
         print(minimum_expected_fields)
         exit(1)
