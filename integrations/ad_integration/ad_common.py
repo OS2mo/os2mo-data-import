@@ -69,6 +69,9 @@ class AD(object):
                     transport="kerberos",
                     auth=(None, None),
                 )
+            return session
+        return None
+
     def _run_ps_script(self, ps_script):
         """
         Run a power shell script and return the result. If it fails, the
