@@ -57,7 +57,7 @@ class AD(object):
                     transport="ntlm",
                     auth=(
                         self.all_settings["primary"]["system_user"],
-                        self.all_settings["primary"]["system_password"],
+                        self.all_settings["primary"]["password"],
                     ),
                     server_cert_validation="ignore",
                 )
