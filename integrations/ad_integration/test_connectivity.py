@@ -147,7 +147,7 @@ def test_ad_write_settings():
 
 
 def perform_read_test():
-    print('Test basic connectivity (Kerberos)')
+    print('Test basic connectivity ({})'.format(method))
     basic_connection = test_basic_connectivity()
     if not basic_connection:
         print('Unable to connect to management server')
