@@ -23,6 +23,7 @@ def ad_minify(text):
 
 def generate_ntlm_session(hostname, system_user, password):
     """Method to create a ntlm session for running powershell scripts.
+
     The returned object should have a run_ps method, which consumes a
     powershell script, and returns a status object.
     The status object should have a status_code, std_out and std_err
@@ -44,6 +45,7 @@ def generate_ntlm_session(hostname, system_user, password):
 
 def generate_kerberos_session(hostname):
     """Method to create a kerberos session for running powershell scripts.
+
     The returned object should have a run_ps method, which consumes a
     powershell script, and returns a status object.
     The status object should have a status_code, std_out and std_err

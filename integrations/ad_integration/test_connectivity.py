@@ -34,10 +34,10 @@ def test_basic_connectivity():
             WINRM_HOST,
             WINRM_user,
             WINRM_password
-            )
+        )
     else:
         session = generate_kerberos_session(
-        WINRM_HOST
+            WINRM_HOST
         )
     try:
         r = session.run_cmd('ipconfig', ['/all'])
