@@ -39,7 +39,7 @@ def test_basic_connectivity():
         self.generate_kerberos_session(
         WINRM_HOST
         )
-try:
+    try:
         r = session.run_cmd('ipconfig', ['/all'])
         error = None
     except requests_kerberos.exceptions.KerberosExchangeError as e:
