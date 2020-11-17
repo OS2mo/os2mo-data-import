@@ -20,7 +20,7 @@ WINRM_HOST = SETTINGS.get('integrations.ad.winrm_host')
 WINRM_user = SETTINGS.get('integrations.ad.system_user')
 WINRM_password = SETTINGS.get('integrations.ad.password')
 # Assume kerberos but read settings to check for ntlm
-method = SETTINGS.get('integrations.ad.method') if  SETTINGS.get('integrations.ad.method') else 'kerberos'
+method = SETTINGS.get("integrations.ad.method", "kerberos")
 if not (WINRM_HOST):
     raise Exception('WINRM_HOST is missing')
 

@@ -27,7 +27,7 @@ def _read_primary_ad_settings(top_settings):
     primary_settings['cpr_field'] = top_settings.get('integrations.ad.cpr_field')
     primary_settings['system_user'] = top_settings.get('integrations.ad.system_user')
     primary_settings['password'] = top_settings.get('integrations.ad.password')
-    primary_settings['method'] = top_settings.get('integrations.ad.method')
+    primary_settings['method'] = top_settings.get("integrations.ad.method", "kerberos")
     primary_settings['properties'] = top_settings.get('integrations.ad.properties')
 
     missing = []
