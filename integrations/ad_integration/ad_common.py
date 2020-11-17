@@ -21,13 +21,60 @@ def ad_minify(text):
         text = text.replace('  ', ' ')
     return text
 
+def generate_ntlm_session(hostname, system_user, password):
+    """Method to create a ntlm session for running powershell scripts.
+    The returned object should have a run_ps method, which consumes a
+    powershell script, and returns a status object.
+    The status object should have a status_code, std_out and std_err
+    attribute, containing the result from executing the powershell script.
+    Returns:
+        winrm.Session: if configured, otherwise None
+    """
+    session = Session(
+        "https://{}:5986/wsman".format(hostname),
+        transport="ntlm",
+        auth=(
+            system_user,
+            password
+        ),
+        server_cert_validation="ignore",
+    )
+    return session
+
+
+def generate_kerberos_session(hostname):
+    """Method to create a kerberos session for running powershell scripts.
+    The returned object should have a run_ps method, which consumes a
+    powershell script, and returns a status object.
+    The status object should have a status_code, std_out and std_err
+    attribute, containing the result from executing the powershell script.
+    Returns:
+        winrm.Session: if configured, otherwise None
+    """
+    session = Session(
+        "http://{}:5985/wsman".format(hostname),
+        transport="kerberos",
+        auth=(None, None),
+    )
+    return session
+
 
 class AD(object):
     def __init__(self, all_settings=None):
         self.all_settings = all_settings
         if self.all_settings is None:
             self.all_settings = read_ad_conf_settings.read_settings()
-        self.session = self._create_session()
+            if self.all_settings["primary"]["method"] == "ntlm":
+                self.generate_ntlm_session(
+                    self.all_settings["global"]["winrm_host"],
+                    self.all_settings["primary"]["system_user"],
+                    self.all_settings["primary"]["password"]
+                )
+            else:
+                self.generate_kerberos_session(
+                    self.all_settings["global"]["winrm_host"]
+                )
+
         self.retry_exceptions = self._get_retry_exceptions()
         self.results = {}
 
@@ -35,42 +82,7 @@ class AD(object):
         """Tuple of exceptions which should trigger retrying create_session."""
         return (WinRMTransportError,)
 
-    def _create_session(self):
-        """Method to create a session for running powershell scripts.
 
-        The returned object should have a run_ps method, which consumes a
-        powershell script, and returns a status object.
-
-        The status object should have a status_code, std_out and std_err
-        attribute, containing the result from executing the powershell script.
-
-        Returns:
-            winrm.Session: if configured, otherwise None
-        """
-        method = self.all_settings["primary"]["method"]
-        if self.all_settings["global"]["winrm_host"]:
-            if method == "ntlm":
-                session = Session(
-                    "https://{}:5986/wsman".format(
-                        self.all_settings["global"]["winrm_host"]
-                    ),
-                    transport="ntlm",
-                    auth=(
-                        self.all_settings["primary"]["system_user"],
-                        self.all_settings["primary"]["password"],
-                    ),
-                    server_cert_validation="ignore",
-                )
-            else:
-                session = Session(
-                    "http://{}:5985/wsman".format(
-                        self.all_settings["global"]["winrm_host"]
-                    ),
-                    transport="kerberos",
-                    auth=(None, None),
-                )
-            return session
-        return None
 
     def _run_ps_script(self, ps_script):
         """

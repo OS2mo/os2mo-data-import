@@ -1,13 +1,14 @@
-import json
-import pathlib
-import logging
 import argparse
+import json
+import logging
+import pathlib
+
 import requests
 import requests_kerberos
-
-from winrm import Session
 from integrations.ad_integration import ad_logger
-
+from integrations.ad_integration.ad_common import (generate_kerberos_session,
+                                                   generate_ntlm_session)
+from winrm import Session
 from winrm.exceptions import InvalidCredentialsError
 
 cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
@@ -28,20 +29,17 @@ logger = logging.getLogger('AdTestConnectivity')
 
 
 def test_basic_connectivity():
-    if method == 'kerberos':
-        session = Session(
-            'http://{}:5985/wsman'.format(WINRM_HOST),
-            transport='kerberos',
-            auth=(None, None)
+    if method == "ntlm":
+        self.generate_ntlm_session(
+            WINRM_HOST,
+            WINRM_user,
+            WINRM_password
+            )
+    else:
+        self.generate_kerberos_session(
+        WINRM_HOST
         )
-    elif method == 'ntlm':
-        session = Session(
-            'https://{}:5986/wsman'.format(WINRM_HOST),
-            transport='ntlm',
-            auth=(WINRM_user, WINRM_password),
-            server_cert_validation='ignore'
-        )
-    try:
+try:
         r = session.run_cmd('ipconfig', ['/all'])
         error = None
     except requests_kerberos.exceptions.KerberosExchangeError as e:
