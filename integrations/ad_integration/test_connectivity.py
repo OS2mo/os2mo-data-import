@@ -30,13 +30,13 @@ logger = logging.getLogger('AdTestConnectivity')
 
 def test_basic_connectivity():
     if method == "ntlm":
-        generate_ntlm_session(
+        session = generate_ntlm_session(
             WINRM_HOST,
             WINRM_user,
             WINRM_password
             )
     else:
-        generate_kerberos_session(
+        session = generate_kerberos_session(
         WINRM_HOST
         )
     try:
