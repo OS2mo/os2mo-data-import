@@ -65,13 +65,13 @@ class AD(object):
         if self.all_settings is None:
             self.all_settings = read_ad_conf_settings.read_settings()
             if self.all_settings["primary"]["method"] == "ntlm":
-                self.generate_ntlm_session(
+                generate_ntlm_session(
                     self.all_settings["global"]["winrm_host"],
                     self.all_settings["primary"]["system_user"],
                     self.all_settings["primary"]["password"]
                 )
             else:
-                self.generate_kerberos_session(
+                generate_kerberos_session(
                     self.all_settings["global"]["winrm_host"]
                 )
 
