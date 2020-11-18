@@ -76,15 +76,8 @@ class AD(object):
         Returns:
             winrm.Session
         """
-        if not self.all_settings["global"]["winrm_host"]:
-            raise Exception("No hostname defined")
-
+   
         if self.all_settings["primary"]["method"] == "ntlm":
-            if not self.all_settings["primary"]["system_user"]:
-                raise Exception("Missing username")
-            if not self.all_settings["primary"]["password"]:
-                raise Exception("Missing pasword")
-
             session = generate_ntlm_session(
                 self.all_settings["global"]["winrm_host"],
                 self.all_settings["primary"]["system_user"],

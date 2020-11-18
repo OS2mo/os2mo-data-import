@@ -6,10 +6,7 @@ import pathlib
 import requests
 import requests_kerberos
 from integrations.ad_integration import ad_logger
-from integrations.ad_integration.ad_common import (
-    generate_kerberos_session,
-    generate_ntlm_session,
-)
+from integrations.ad_integration.ad_common import AD
 from winrm import Session
 from winrm.exceptions import InvalidCredentialsError
 
@@ -20,10 +17,6 @@ if not cfg_file.is_file():
 # and no references should be needed in global scope.
 SETTINGS = json.loads(cfg_file.read_text())
 WINRM_HOST = SETTINGS.get("integrations.ad.winrm_host")
-WINRM_user = SETTINGS.get("integrations.ad.system_user")
-WINRM_password = SETTINGS.get("integrations.ad.password")
-# Assume kerberos but read settings to check for ntlm
-method = SETTINGS.get("integrations.ad.method", "kerberos")
 if not (WINRM_HOST):
     raise Exception("WINRM_HOST is missing")
 
@@ -31,10 +24,7 @@ logger = logging.getLogger("AdTestConnectivity")
 
 
 def test_basic_connectivity():
-    if method == "ntlm":
-        session = generate_ntlm_session(WINRM_HOST, WINRM_user, WINRM_password)
-    else:
-        session = generate_kerberos_session(WINRM_HOST)
+    session=AD().session
     try:
         r = session.run_cmd("ipconfig", ["/all"])
         error = None
