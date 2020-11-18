@@ -56,7 +56,7 @@ class AD(object):
         self.all_settings = all_settings
         if self.all_settings is None:
             self.all_settings = read_ad_conf_settings.read_settings()
-        self.session = _create_session()
+        self.session = self._create_session()
         self.retry_exceptions = self._get_retry_exceptions()
         self.results = {}
 
