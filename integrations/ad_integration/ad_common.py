@@ -74,7 +74,7 @@ class AD(object):
         attribute, containing the result from executing the powershell script.
 
         Returns:
-                winrm.Session: if configured, otherwise None
+            winrm.Session: if configured, otherwise None
         """
         if self.all_settings["global"]["winrm_host"]:
             if self.all_settings["primary"]["method"] == "ntlm":
