@@ -64,19 +64,21 @@ class AD(object):
         self.all_settings = all_settings
         if self.all_settings is None:
             self.all_settings = read_ad_conf_settings.read_settings()
-            if self.all_settings["primary"]["method"] == "ntlm":
-                self.session = generate_ntlm_session(
-                    self.all_settings["global"]["winrm_host"],
-                    self.all_settings["primary"]["system_user"],
-                    self.all_settings["primary"]["password"],
-                )
-            else:
-                self.session = generate_kerberos_session(
-                    self.all_settings["global"]["winrm_host"]
-                )
-
+        self.session = _create_session()
         self.retry_exceptions = self._get_retry_exceptions()
         self.results = {}
+
+    def _create_session(self):
+        if self.all_settings["primary"]["method"] == "ntlm":
+            self.session = generate_ntlm_session(
+                self.all_settings["global"]["winrm_host"],
+                self.all_settings["primary"]["system_user"],
+                self.all_settings["primary"]["password"],
+            )
+        else:
+            self.session = generate_kerberos_session(
+                self.all_settings["global"]["winrm_host"]
+            )
 
     def _get_retry_exceptions(self):
         """Tuple of exceptions which should trigger retrying create_session."""
