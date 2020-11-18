@@ -25,12 +25,11 @@ def _read_primary_ad_settings(top_settings):
     primary_settings = {}
     primary_settings['search_base'] = top_settings.get('integrations.ad.search_base')
     primary_settings['cpr_field'] = top_settings.get('integrations.ad.cpr_field')
+    primary_settings['system_user'] = top_settings.get('integrations.ad.system_user')
+    primary_settings['password'] = top_settings.get('integrations.ad.password')
     primary_settings['properties'] = top_settings.get('integrations.ad.properties')
     primary_settings['method'] = top_settings.get("integrations.ad.method", "kerberos")
-    if primary_settings['method'] == 'ntlm':
-        primary_settings['system_user'] = top_settings.get('integrations.ad.system_user')
-        primary_settings['password'] = top_settings.get('integrations.ad.password')
-
+    
     missing = []
     for key, val in primary_settings.items():
         if val is None:
