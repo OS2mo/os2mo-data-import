@@ -49,7 +49,7 @@ stages:
 Lint SDLoen Integration:
   extends: .lint-python
   script:
-    - cd integrations/SDLon/
+    - cd integrations/SD_Lon/
     - python -m black --diff --line-length 85 --check sd_cli.py
     - python -m isort --diff --check-only sd_cli.py
 
