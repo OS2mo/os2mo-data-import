@@ -74,21 +74,27 @@ class AD(object):
         attribute, containing the result from executing the powershell script.
 
         Returns:
-            winrm.Session: if configured, otherwise None
+            winrm.Session
         """
-        if self.all_settings["global"]["winrm_host"]:
-            if self.all_settings["primary"]["method"] == "ntlm":
-                session = generate_ntlm_session(
-                    self.all_settings["global"]["winrm_host"],
-                    self.all_settings["primary"]["system_user"],
-                    self.all_settings["primary"]["password"],
-                )
-            else:
-                session = generate_kerberos_session(
-                    self.all_settings["global"]["winrm_host"]
-                )
-            return session
-        return None
+        if not self.all_settings["global"]["winrm_host"]:
+            raise Exception("No hostname defined")
+
+        if self.all_settings["primary"]["method"] == "ntlm":
+            if not self.all_settings["primary"]["system_user"]:
+                raise Exception("Missing username")
+            if not self.all_settings["primary"]["password"]:
+                raise Exception("Missing pasword")
+
+            session = generate_ntlm_session(
+                self.all_settings["global"]["winrm_host"],
+                self.all_settings["primary"]["system_user"],
+                self.all_settings["primary"]["password"],
+            )
+        else:
+            session = generate_kerberos_session(
+                self.all_settings["global"]["winrm_host"]
+            )
+        return session
 
     def _run_ps_script(self, ps_script):
         """
