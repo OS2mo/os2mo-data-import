@@ -86,7 +86,12 @@ class AD(object):
         else:
             session = generate_kerberos_session(
                 self.all_settings["global"]["winrm_host"]
+        elif self.all_settings["primary"]["method"] == "kerberos":
+            session = generate_kerberos_session(
+                self.all_settings["global"]["winrm_host"]
             )
+        else:
+            raise ValueError("Unknown WinRM method" + str(self.all_settings["primary"]["method"]))
         return session
 
     def _run_ps_script(self, ps_script):
