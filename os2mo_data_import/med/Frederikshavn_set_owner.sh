@@ -12,14 +12,15 @@ UUID=$(curl --silent -H 'SESSION: '${SAML_TOKEN} localhost:5000/service/o/ | jq 
 MED="96d2125e-7f5d-454a-a564-ce8ccb0b2d95"
 MAIN="7ddf4346-ce24-6ba5-7620-a1e7162fda68"
 
-# Find alle klasser med facetten association_type
-CLASSES=$(curl -H 'SESSION: '${SAML_TOKEN} localhost:5000/service/o/${UUID}/f/association_type/)
+# Find alle klasser med facetten org_unit_type
+CLASSES=$(curl -H 'SESSION: '${SAML_TOKEN} localhost:5000/service/o/${UUID}/f/org_unit_type/)
 
 TOTAL_CLASSES=$(echo $CLASSES | jq -r  .data.total)
-echo "Found ${TOTAL_CLASSES} association_types"
+echo "Found ${TOTAL_CLASSES} org_unit_types"
 
 # For disse klasser skal ejerskabet være MED organisationen:
-LIST='"AMR" "AMR, næstformand" "FTR" "FTR, næstformand" "LR" "LR, formand" "Medarb.rep, næstformand" "Stedfortræder" "TR" "TR, næstformand"'
+LIST='"DirektørMED" "Pers.møde m/ MED" "LokalMED" "CenterMED" "HovedMED"'
+
 
 # Loop over klasserne
 echo $CLASSES | jq -c .data.items[] | while read line; do
