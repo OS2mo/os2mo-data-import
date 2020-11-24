@@ -31,7 +31,7 @@ remote management serveren som afvikler dem mod AD serveren. Denne omvej hænger
 sammen med, at MO afvikles fra et Linux miljø, hvorimod PowerShell kommunikation
 med AD bedst afvikles fra et Windows miljø. 
 
-For at kunne afvikle integrationen kræves der udover den nævnte opsætning af enten Keberos eller ntlm,
+For at kunne afvikle integrationen kræves der udover den nævnte opsætning af enten Kerberos eller ntlm,
 at AD er sat op med cpr-numre på medarbejdere samt en servicebruger som har
 rettigheder til at læse dette felt. Desuden skal et antal variable være sat i
 ``settings.json``
@@ -39,7 +39,7 @@ rettigheder til at læse dette felt. Desuden skal et antal variable være sat i
 Opsætning af ntlm over https
 ----------------------------
 For at kunne autentificere med ntlm over https kræver det at settingsfilen indeholder brugernavn og password
-til en systembruger fra et domæne - modsat lokalt oprettet bruger - samt metoden 'ntlm'. Se bekrivelsen af paramere herunder. Brugeren skal desuden have 
+til en systembruger fra et domæne - modsat lokalt oprettet bruger - samt metoden 'ntlm'. Se bekrivelsen af parametre herunder. Brugeren skal desuden have 
 administratorrettigheder på windowsserveren, samt rettigheder til at læse og evt. skrive i AD.
 Dette gælder også feltet der indeholder CPR numre der kan være indstillet til 'confidential'. 
 I så fald skal rettigheden gives gennem programmet ldp. 
@@ -140,14 +140,14 @@ Programmet afvikles med en af to parametre:
 
 En test af læsning foregår i flere trin:
  * Der testes for om Remote Management serveren kan nås og autentificeres med metoden
-   specificeret i settings - enten kereros (standard) eller med ntlm.
+   specificeret i settings - enten Kerberos (standard) eller med ntlm.
  * Der testes om det er muligt af afvikle en triviel kommando på AD serveren.
  * Der testes for, at en søgning på alle cpr-numre fra 31. november returnerer
    nul resultater.
  * Der testes for, at en søging på cpr-numre fra den 30. i alle måneder returnerer
    mindst et resultat. Hvis der ikke returneres nogen, er fejlen sandsynligvis
    en manglende rettighed til at læse feltet med cpr-nummer i AD. Dette kan bla. skyldes
-   at rettigheder til confidential attribus skal sættes i ldp programmet.
+   at rettigheder til confidential attributes skal sættes i ldp programmet.
  * Der testes om de returnerede svar indeholder mindst et eksempel på disse tegn:
    æ, ø, å, @ som en test af at tegnsættet er korrekt sat op.
 
