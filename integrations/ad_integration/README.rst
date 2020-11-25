@@ -45,6 +45,56 @@ indbyggede betydning:
 
  * Alle AD'er anvendes af ad_sync til opdatering af og skabelse af adresser, itsystemer 
 
+Opsætning af ntlm over https
+----------------------------
+For at kunne autentificere med ntlm over https kræver det at settingsfilen indeholder brugernavn og password
+til en systembruger fra et domæne - modsat lokalt oprettet bruger - samt metoden 'ntlm'. Se bekrivelsen af parametre herunder. Brugeren skal desuden have 
+administratorrettigheder på windowsserveren, samt rettigheder til at læse og evt. skrive i AD.
+Dette gælder også feltet der indeholder CPR numre der kan være indstillet til 'confidential'. 
+I så fald skal rettigheden gives gennem programmet ldp. 
+For at sætte winrm op med https vha. et SelfSignedCertificate kan man følge nedenstående:
+Erstat "Computernavn" med serverens Hostname.
+
+1. I powershell som administrator køres
+
+.. code-block:: powershell
+
+  New-SelfSignedCertificate -DnsName "Computernavn" -CertStoreLocation Cert:\LocalMachine\My
+
+Det giver et 'thumbprint' i stil med "54B8571D6D0C0C89473ED5470A45EDC5A68AA2C3"
+
+2. Dette sættes ind i følgende kommando i en kommandoprompt (ikke powershell) også som administrator:
+
+.. code-block:: 
+
+  winrm create winrm/config/Listener?Address=*+Transport=HTTPS @{Hostname="Computernavn"; CertificateThumbprint="54B8571D6D0C0C89473ED5470A45EDC5A68AA2C3"}
+
+
+derefter i administrator powershell igen:
+
+.. code-block:: powershell
+
+  netsh advfirewall firewall add rule name="WinRM-HTTPS" dir=in localport=5986 protocol=TCP action=allow
+  winrm quickconfig -q
+  winrm quickconfig -transport:http
+  $enableArgs=@{Force=$true}
+  try {
+    $command=Get-Command Enable-PSRemoting
+    if($command.Parameters.Keys -contains "skipnetworkprofilecheck"){
+        $enableArgs.skipnetworkprofilecheck=$true
+    }
+  }
+  catch {
+    $global:error.RemoveAt(0)
+  }
+  Enable-PSRemoting @enableArgs
+  winrm set winrm/config/client/auth '@{Basic="true"}'
+  winrm set winrm/config/service/auth '@{Basic="true"}'
+  winrm set winrm/config/service '@{AllowUnencrypted="false"}'
+
+Nu skulle der være adgang til winrm med ntlm, krypteret med https, via port 5986.
+
+
 
 Fælles parametre
 ----------------
@@ -71,6 +121,7 @@ For hvert ad angives
  * ``password``: Password til samme systembruger.
  * ``properties``: Liste over felter som skal læses fra AD. Angives
    som en liste i json-filen.
+ * ``method``: Metode til autentificering - enten ntlm eller kerberos. Hvis denne ikke er angivet anvendes kerberos.
  * ``servers`` - domain controllere for denne ad.
 
 
