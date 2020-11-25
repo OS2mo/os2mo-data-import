@@ -252,8 +252,8 @@ async def ensure_class_value(
     if variable == 'ejer':
         try:
             old_owner = klasse.get('relationer').get('ejer')[0].get('uuid')
-            changed = False if old_owner == new_value else True 
-        except:
+            changed = (old_owner != new_value)
+        except IndexError:
             changed = True
 
         if changed:
@@ -264,7 +264,6 @@ async def ensure_class_value(
                     "objekttype": "OrganisationEnhed",
                 }
             ]
-
     else:
         klasse, changed = check_value(variable, new_value, klasse)
     # Print for dry run
