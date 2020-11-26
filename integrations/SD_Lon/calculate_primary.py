@@ -339,7 +339,7 @@ def calculate_primary(check_all, recalculate_all, recalculate_user):
     """Tool to work with primary engagement(s)."""
     setup_logging()
 
-    num_set = sum(map(bool, [check_all, recalculate_all]))
+    num_set = sum(map(bool, [check_all, recalculate_all, recalculate_user]))
     if num_set == 0:
         raise click.ClickException("Please provide atleast one argument")
     if num_set > 1:
