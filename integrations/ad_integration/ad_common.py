@@ -306,10 +306,10 @@ class AD(object):
         get_command = ps_template.format(dict_key)
 
         server_string = ""
-        if server:
+        if server is not None:
             server_string = " -Server {}".format(server)
         else:
-            if self.all_settings["global"].get("servers") is not None:
+            if self.all_settings["global"].get("servers"):
                 server_string = " -Server {}".format(
                     random.choice(self.all_settings["global"]["servers"])
                 )

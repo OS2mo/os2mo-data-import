@@ -73,7 +73,7 @@ class ADParameterReader(AD):
         logger.debug('Uncached AD read, user {}, cpr {}'.format(user, cpr))
 
         server=None
-        if self.all_settings['primary']['servers'] is not None:
+        if self.all_settings['primary']['servers']:
             server = random.choice(self.all_settings['primary']['servers'])
         response = self.get_from_ad(user=user, cpr=cpr, server=server)
 
