@@ -308,11 +308,10 @@ class AD(object):
         server_string = ""
         if server is not None:
             server_string = " -Server {}".format(server)
-        else:
-            if self.all_settings["global"].get("servers"):
-                server_string = " -Server {}".format(
-                    random.choice(self.all_settings["global"]["servers"])
-                )
+        elif self.all_settings["global"].get("servers"):
+            server_string = " -Server {}".format(
+            random.choice(self.all_settings["global"]["servers"])
+            )
 
         command_end = (
             " | ConvertTo-Json  | "
