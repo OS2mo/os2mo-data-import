@@ -8,6 +8,8 @@ import datetime
 import dateutil
 import lora_utils
 import requests
+from operator import itemgetter
+from itertools import starmap
 from collections import defaultdict
 
 from os2mo_helpers.mora_helpers import MoraHelper
@@ -25,11 +27,9 @@ class LoraCache(object):
     def __init__(self, resolve_dar=True, full_history=False, skip_past=False):
         msg = 'Start LoRa cache, resolve dar: {}, full_history: {}'
         logger.info(msg.format(resolve_dar, full_history))
+        self.resolve_dar = resolve_dar
 
-        cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
-        if not cfg_file.is_file():
-            raise Exception('No setting file')
-        self.settings = json.loads(cfg_file.read_text())
+        self.settings = self._load_settings()
 
         self.additional = {
             'relationer': ('tilknyttedeorganisationer', 'tilhoerer')
@@ -40,6 +40,12 @@ class LoraCache(object):
         self.full_history = full_history
         self.skip_past = skip_past
         self.org_uuid = self._read_org_uuid()
+
+    def _load_settings(self):
+        cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
+        if not cfg_file.is_file():
+            raise Exception('No setting file')
+        return json.loads(cfg_file.read_text())
 
     def _read_org_uuid(self):
         mh = MoraHelper(hostname=self.settings['mora.base'], export_ansi=False)
@@ -240,9 +246,21 @@ class LoraCache(object):
                 if from_date is None and to_date is None:
                     continue
                 reg = effect[2]
-                cpr = reg['relationer']['tilknyttedepersoner'][0]['urn'][-10:]
-                egenskaber = reg['attributter']['brugeregenskaber'][0]
-                udv = reg['attributter']['brugerudvidelser'][0]
+
+                tilknyttedepersoner = reg['relationer']['tilknyttedepersoner']
+                if len(tilknyttedepersoner) == 0:
+                    continue
+                cpr = tilknyttedepersoner[0]['urn'][-10:]
+
+                egenskaber = reg['attributter']['brugeregenskaber']
+                if len(egenskaber) == 0:
+                    continue
+                egenskaber = egenskaber[0]
+
+                udv = reg['attributter']['brugerudvidelser']
+                if len(udv) == 0:
+                    continue
+                udv = udv[0]
 
                 user_key = egenskaber.get('brugervendtnoegle', '')
                 fornavn = udv.get('fornavn', '')
@@ -299,7 +317,7 @@ class LoraCache(object):
                 else:
                     parent = parent_raw
 
-                if 'niveau' in relationer:
+                if 'niveau' in relationer and len(relationer['niveau']) > 0:
                     level = relationer['niveau'][0]['uuid']
                 else:
                     level = None
@@ -858,24 +876,43 @@ class LoraCache(object):
             print(msg)
             return
 
-        responsibility_class = self.settings[
-            'exporters.actual_state.manager_responsibility_class']
+        responsibility_class = self.settings.get(
+            'exporters.actual_state.manager_responsibility_class', None
+        )
         for unit, unit_validities in self.units.items():
             assert(len(unit_validities)) == 1
             unit_info = unit_validities[0]
             manager_uuid = None
             acting_manager_uuid = None
 
-            # Find a direct manager, if possible
-            for manager, manager_validities in self.managers.items():
-                assert(len(manager_validities)) == 1
-                manager_info = manager_validities[0]
+            def find_manager_for_org_unit(org_unit):
+                def to_manager_info(manager_uuid, manager_validities):
+                    assert(len(manager_validities)) == 1
+                    manager_info = manager_validities[0]
+                    return manager_uuid, manager_info
 
-                if manager_info['unit'] == unit:
-                    for resp in manager_info['manager_responsibility']:
-                        if resp == responsibility_class:
-                            manager_uuid = manager
-                            acting_manager_uuid = manager
+                def filter_invalid_managers(tup):
+                    manager_uuid, manager_info = tup
+                    # Wrong unit
+                    if manager_info['unit'] != org_unit:
+                        return False
+                    # No resonsibility class
+                    if responsibility_class is None:
+                        return True
+                    # Check responsability
+                    return any(
+                        resp == responsibility_class
+                        for resp in manager_info['manager_responsibility']
+                    )
+
+                managers = self.managers.items()
+                managers = starmap(to_manager_info, managers)
+                managers = filter(filter_invalid_managers, managers)
+                managers = map(itemgetter(0), managers)
+                return next(managers, None)
+
+            # Find a direct manager, if possible
+            manager_uuid = acting_manager_uuid = find_manager_for_org_unit(unit)
 
             location = ''
             current_unit = unit_info
@@ -889,12 +926,7 @@ class LoraCache(object):
 
                 # Find the acting manager.
                 if acting_manager_uuid is None:
-                    for manager, manager_validities in self.managers.items():
-                        manager_info = manager_validities[0]
-                        if manager_info['unit'] == current_parent:
-                            for resp in manager_info['manager_responsibility']:
-                                if resp == responsibility_class:
-                                    acting_manager_uuid = manager
+                    acting_manager_uuid = find_manager_for_org_unit(current_parent)
             location = location[:-1]
 
             self.units[unit][0]['location'] = location
@@ -905,19 +937,21 @@ class LoraCache(object):
         # Initialize cache for entries we cannot lookup
         dar_uuids = self.dar_map.keys()
         dar_cache = dict(map(
-            lambda dar_uuid: (dar_uuid, {'betegnelse': 'skip dar'}), dar_uuids
+            lambda dar_uuid: (dar_uuid, {'betegnelse': None}), dar_uuids
         ))
         total_dar = len(dar_uuids)
+        total_missing = total_dar
 
         # Start looking entries up in DAR
-        dar_addresses, missing = dar_helper.sync_dar_fetch(dar_uuids)
-        dar_adgange, missing = dar_helper.sync_dar_fetch(
-            list(missing), addrtype="adgangsadresser"
-        )
-        total_missing = len(missing)
+        if self.resolve_dar:
+            dar_addresses, missing = dar_helper.sync_dar_fetch(dar_uuids)
+            dar_adgange, missing = dar_helper.sync_dar_fetch(
+                list(missing), addrtype="adgangsadresser"
+            )
+            total_missing = len(missing)
 
-        dar_cache.update(dar_addresses)
-        dar_cache.update(dar_adgange)
+            dar_cache.update(dar_addresses)
+            dar_cache.update(dar_adgange)
 
         # Update all addresses with betegnelse
         for dar_uuid, uuid_list in self.dar_map.items():
