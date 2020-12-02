@@ -1,16 +1,16 @@
 import json
-import pathlib
 import logging
+import pathlib
 from datetime import datetime
 
-from more_itertools import only
-
-import ad_reader as adreader
-import ad_logger
-from os2mo_helpers.mora_helpers import MoraHelper
 from exporters.sql_export.lora_cache import LoraCache
-
 from integrations.ad_integration import read_ad_conf_settings
+from more_itertools import only
+from os2mo_helpers.mora_helpers import MoraHelper
+
+import ad_logger
+import ad_reader as adreader
+from ad_common import AD
 
 logger = logging.getLogger('AdSyncRead')
 
@@ -31,20 +31,20 @@ VALIDITY = {
 }
 
 
-class AdMoSync(object):
-    def __init__(self, all_settings=None):
+class AdMoSync(AD):
+    def __init__(self, all_settings=None, index=0):
         logger.info('AD Sync Started')
 
-        self.settings = all_settings
-        if self.settings is None:
-            self.settings = read_ad_conf_settings.SETTINGS
+        self.all_settings = all_settings
+        if self.all_settings is None:
+            self.all_settings = read_ad_conf_settings.read_settings(index=index)
 
         self.helper = self._setup_mora_helper()
         self.org = self.helper.read_organisation()
 
         # Possibly get IT-system directly from LoRa for better performance.
-        lora_speedup = self.settings.get(
-            'integrations.ad.ad_mo_sync_direct_lora_speedup', False)
+        lora_speedup = self.all_settings.get(
+            'ad_mo_sync_direct_lora_speedup', False)
         if lora_speedup:
             print('Retrive LoRa dump')
             self.lc = LoraCache(resolve_dar=False, full_history=False)
@@ -59,10 +59,11 @@ class AdMoSync(object):
         #exit() # - når man vil lave picklefiler
 
         mo_visibilities = self.helper.read_classes_in_facet('visibility')[0]
+        #todo: 
         self.visibility = {
-            'PUBLIC': self.settings['address.visibility.public'],
-            'INTERNAL': self.settings['address.visibility.internal'],
-            'SECRET': self.settings['address.visibility.secret']
+            'PUBLIC': self.all_settings['primary'].get('address.visibility.public', 'PUBLIC'),
+            'INTERNAL': self.all_settings['primary'].get('address.visibility.internal', 'INTERNAL'),
+            'SECRET': self.all_settings['primary'].get('address.visibility.secret', 'SECRET')
         }
         for sync_vis in self.visibility.values():
             found = False
@@ -73,7 +74,7 @@ class AdMoSync(object):
                 raise Exception('Error in visibility class configuration')
 
     def _setup_mora_helper(self):
-        return MoraHelper(hostname=self.settings['mora.base'],
+        return MoraHelper(hostname=self.all_settings['global']['mora.base'],
                           use_cache=False)
 
     def _read_mo_classes(self):
@@ -422,8 +423,8 @@ class AdMoSync(object):
             logger.info('{} not in ad_object'.format("Enabled"))
 
         # Lookup whether or not to terminate disabled users
-        terminate_disabled = self.settings.get(
-            "integrations.ad.ad_mo_sync_terminate_disabled", False
+        terminate_disabled = self.all_settings['primary'].get(
+            "ad_mo_sync_terminate_disabled", False
         )
         # Check whether the current user is disabled or not
         current_user_is_disabled = ad_object.get('Enabled', True) == False
@@ -445,7 +446,7 @@ class AdMoSync(object):
 
     def update_all_users(self):
         # Iterate over all AD's 
-        for index, _ in enumerate(self.settings["integrations.ad"]):
+        for index, _ in enumerate(self.all_settings['primary']["integrations.ad"]):
 
             self.stats = {
                 'ad-index': index,
@@ -455,7 +456,7 @@ class AdMoSync(object):
                 'users': set()
             }
 
-            ad_reader = adreader.ADParameterReader(self.settings, index=index)
+            ad_reader = adreader.ADParameterReader(self.all_settings, index=index)
             print('Retrive AD dump')
             ad_reader.cache_all()
             print('Done')
