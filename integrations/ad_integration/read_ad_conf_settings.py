@@ -83,6 +83,10 @@ def _read_primary_ad_settings(top_settings, index=0):
         'integrations.ad')[index].get('ad_mo_sync_mapping', {})
     primary_settings['method'] = top_settings[
         'integrations.ad'][index].get("method", "kerberos")
+    primary_settings['address.visibility.public'] = top_settings.get('address.visibility.public')
+    primary_settings['address.visibility.internal'] = top_settings.get('address.visibility.internal')
+    primary_settings['address.visibility.secret'] = top_settings.get('address.visibility.secret')
+
 
     # So far false in all known cases, default to false
     # get_ad_object = os.environ.get('AD_GET_AD_OBJECT', 'False')

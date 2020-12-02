@@ -61,9 +61,9 @@ class AdMoSync(AD):
         mo_visibilities = self.helper.read_classes_in_facet('visibility')[0]
         #todo: 
         self.visibility = {
-            'PUBLIC': self.all_settings['primary'].get('address.visibility.public', 'PUBLIC'),
-            'INTERNAL': self.all_settings['primary'].get('address.visibility.internal', 'INTERNAL'),
-            'SECRET': self.all_settings['primary'].get('address.visibility.secret', 'SECRET')
+            'PUBLIC': self.all_settings['primary'].get('address.visibility.public'),
+            'INTERNAL': self.all_settings['primary'].get('address.visibility.internal'),
+            'SECRET': self.all_settings['primary'].get('address.visibility.secret')
         }
         for sync_vis in self.visibility.values():
             found = False
