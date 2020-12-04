@@ -69,7 +69,7 @@ def main():
 
     # Output delete-map
     #print(json.dumps(output, indent=4, sort_keys=True))
-    helper = MoraHelper(hostname=self.settings['mora.base'],use_cache=False)
+    helper = MoraHelper(hostname="http://localhost:5000",use_cache=False)
     yesterday = date.today() - timedelta(days=1)
     for uuid in output.values():
         payload = {
