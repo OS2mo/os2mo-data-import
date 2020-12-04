@@ -71,7 +71,7 @@ def main():
     #print(json.dumps(output, indent=4, sort_keys=True))
     helper = MoraHelper(hostname=self.settings['mora.base'],use_cache=False)
     yesterday = date.today() - timedelta(days=1)
-    for uuid in output:
+    for uuid in output.values():
         payload = {
              'type': 'it',
              'uuid': uuid,
