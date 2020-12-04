@@ -1,10 +1,12 @@
 import json
 from collections import ChainMap
+from datetime import date, timedelta
 from functools import partial
 from operator import attrgetter
 
 from exporters.sql_export.lc_for_jobs_db import get_engine
 from exporters.sql_export.sql_table_defs import ItForbindelse
+from os2mo_helpers.mora_helpers import MoraHelper
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 
@@ -66,8 +68,20 @@ def main():
     output = dict(ChainMap(*duplicate_maps))
 
     # Output delete-map
-    print(json.dumps(output, indent=4, sort_keys=True))
-
+    #print(json.dumps(output, indent=4, sort_keys=True))
+    helper = MoraHelper(hostname=self.settings['mora.base'],use_cache=False)
+    yesterday = date.today() - timedelta(days=1)
+    for uuid in output:
+        payload = {
+             'type': 'it',
+             'uuid': uuid,
+             'validity': {
+                 'to': yesterday.strftime("%Y-%m-%d")
+             }
+             }
+    
+        response = helper._mo_post('details/terminate', payload)
+        response.raise_for_status()
 
 if __name__ == "__main__":
     main()
