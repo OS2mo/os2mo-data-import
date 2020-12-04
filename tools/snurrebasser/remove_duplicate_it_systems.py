@@ -68,10 +68,12 @@ def main():
     output = dict(ChainMap(*duplicate_maps))
 
     # Output delete-map
-    #print(json.dumps(output, indent=4, sort_keys=True))
+    print(json.dumps(output, indent=4, sort_keys=True))
     helper = MoraHelper(hostname="http://localhost:5000",use_cache=False)
     yesterday = date.today() - timedelta(days=1)
+    counter = 0
     for uuid in output.values():
+        counter += 1
         payload = {
              'type': 'it',
              'uuid': uuid,
@@ -82,6 +84,7 @@ def main():
     
         response = helper._mo_post('details/terminate', payload)
         response.raise_for_status()
+    print "{} duplicate it systems deleted".format(counter)
 
 if __name__ == "__main__":
     main()
