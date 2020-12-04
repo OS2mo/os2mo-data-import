@@ -10,6 +10,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 
+#This will find and terminate any dublicate it systems associated with users.
+#It searches the actual-state database, so be sure to run lc_for_jobs first.
 
 def find_duplicate_it_connections(session):
     # These columns specify uniqueness
@@ -69,9 +71,12 @@ def main():
 
     # Output delete-map
     print(json.dumps(output, indent=4, sort_keys=True))
+
+    #Terminate dublicate IT systems in MO by setting validity to yesterday.
     helper = MoraHelper(hostname="http://localhost:5000",use_cache=False)
     yesterday = date.today() - timedelta(days=1)
     counter = 0
+    max_dup = max(output.keys())
     for uuid in output.values():
         counter += 1
         payload = {
@@ -84,6 +89,7 @@ def main():
     
         response = helper._mo_post('details/terminate', payload)
         response.raise_for_status()
+        print("{}/{} duplicate it systems deleted".format(counter, max_dup))
     print("{} duplicate it systems deleted".format(counter))
 
 if __name__ == "__main__":
