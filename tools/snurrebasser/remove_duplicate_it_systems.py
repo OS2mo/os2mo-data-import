@@ -84,7 +84,7 @@ def main():
     
         response = helper._mo_post('details/terminate', payload)
         response.raise_for_status()
-    print "{} duplicate it systems deleted".format(counter)
+    print("{} duplicate it systems deleted".format(counter))
 
 if __name__ == "__main__":
     main()
