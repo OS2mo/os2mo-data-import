@@ -1,5 +1,7 @@
 import json
 from collections import ChainMap
+
+import requests
 from functools import partial
 from operator import attrgetter
 
@@ -67,6 +69,14 @@ def main():
 
     # Output delete-map
     print(json.dumps(output, indent=4, sort_keys=True))
+
+
+def delete_from_lora(duplicate_dict):
+
+    for uuid in duplicate_dict.values():
+        r = requests.delete('http://localhost:8080/organisation/organisationfunktion/{}'.format(uuid))
+        r.raise_for_status()
+        print('uuid')
 
 
 if __name__ == "__main__":
