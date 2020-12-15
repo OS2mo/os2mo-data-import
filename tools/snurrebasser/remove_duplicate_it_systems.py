@@ -56,26 +56,29 @@ def construct_duplicate_dict(session, duplicate_entry):
 def get_addresses_for(uuids):
     addresses = []
     for uuid in uuids:
-        r = requests.get( 'http://localhost:8080/organisation/organisationfunktion?organisatoriskfunktionstype={}'.format(uuid))
+        r = requests.get( 'http://localhost:8080/organisation/organisationfunktion?tilknyttedeitsystemer={}'.format(uuid))
         r.raise_for_status()
         addresses.append(r.json()['results'][0])
+    return addresses
 
 
 def main():
     engine = get_engine()
 
-    uuids = []
-
-    addresses = get_addresses_for(uuids)
-
+    from more_itertools import flatten
+    uuids = ["16a21bd1-6669-4270-a65f-6e7612c08f41"]
+    addresses = list(flatten(get_addresses_for(uuids)))
+    
+    print(len(addresses))
+    
     delete_from_lora(addresses)
 
 def delete_from_lora(duplicate_dict):
 
-    for uuid in duplicate_dict.values():
+    for uuid in duplicate_dict:
         r = requests.delete('http://localhost:8080/organisation/organisationfunktion/{}'.format(uuid))
         r.raise_for_status()
-        print('uuid')
+        print(uuid)
 
 
 if __name__ == "__main__":
