@@ -53,23 +53,22 @@ def construct_duplicate_dict(session, duplicate_entry):
     return row_dict
 
 
+def get_addresses_for(uuids):
+    addresses = []
+    for uuid in uuids:
+        r = requests.get( 'http://localhost:8080/organisation/organisationfunktion?organisatoriskfunktionstype={}'.format(uuid))
+        r.raise_for_status()
+        addresses.append(r.json()['results'][0])
+
+
 def main():
     engine = get_engine()
 
-    # Prepare session
-    Session = sessionmaker(bind=engine, autoflush=False)
-    session = Session()
+    uuids = []
 
-    # List of tuples, it_sys_uuid, bruger_uuid, enhed_uuid, brugernavn, count
-    duplicates = find_duplicate_it_connections(session)
-    # List of dicts from id --> uuid (for rows to be deleted)
-    duplicate_maps = map(partial(construct_duplicate_dict, session), duplicates)
-    # One combined dict from id --> uuid (for rows to be deleted)
-    output = dict(ChainMap(*duplicate_maps))
+    addresses = get_addresses_for(uuids)
 
-    # Output delete-map
-    print(json.dumps(output, indent=4, sort_keys=True))
-
+    delete_from_lora(addresses)
 
 def delete_from_lora(duplicate_dict):
 
