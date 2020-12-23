@@ -1,6 +1,4 @@
 import uuid
-import json
-import pathlib
 import hashlib
 import logging
 import argparse
@@ -10,6 +8,7 @@ import requests
 
 from os2mo_helpers.mora_helpers import MoraHelper
 from integrations.ad_integration import payloads
+from integrations.ad_integration import read_ad_conf_settings
 from integrations.ad_integration.ad_reader import ADParameterReader
 
 # Set up a real logger!
@@ -33,12 +32,12 @@ logging.basicConfig(
 
 class ADMOImporter(object):
     def __init__(self):
-        cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
-        if not cfg_file.is_file():
-            raise Exception('No setting file')
-        self.settings = json.loads(cfg_file.read_text())
+        all_settings = read_ad_conf_settings.read_settings()
 
-        self.helper = MoraHelper(hostname=self.settings['mora.base'],
+        self.global_settings = all_settings['global']
+        self.primary_settings = all_settings['primary']
+
+        self.helper = MoraHelper(hostname=self.global_settings['mora.base'],
                                  use_cache=False)
         try:
             self.org_uuid = self.helper.read_organisation()
@@ -60,7 +59,7 @@ class ADMOImporter(object):
         """
         Generate a predictable uuid based on org name and a unique value.
         """
-        base_hash = hashlib.md5(self.settings['municipality.name'].encode())
+        base_hash = hashlib.md5(self.global_settings['municipality.name'].encode())
         base_digest = base_hash.hexdigest()
         base_uuid = uuid.UUID(base_digest)
 
@@ -85,7 +84,7 @@ class ADMOImporter(object):
         payload = payloads.klasse(bvn, navn, self.org_uuid, facet_uuid)
         url = '{}/klassifikation/klasse/{}'
         response = requests.put(
-            url=url.format(self.settings['mox.base'], klasse_uuid),
+            url=url.format(self.global_settings['mox.base'], klasse_uuid),
             json=payload
         )
         assert response.status_code == 200
@@ -95,11 +94,11 @@ class ADMOImporter(object):
         """
         Find or create Klasse.
         Return the uuid of a given Klasse. If it does not exist, it will be created.
-        :param klassenavn: String with the user key of the Klasse.
+        :param bvn: String with the user key of the Klasse.
         :param facet: String with the name of the Facet for the Klasse.
         :return: uuid of the Klasse
         """
-        url = self.settings['mox.base'] + '/klassifikation/klasse?bvn=' + bvn
+        url = self.global_settings['mox.base'] + '/klassifikation/klasse?bvn=' + bvn
         response = requests.get(url)
         response.raise_for_status()
         found_klasser = response.json()
@@ -125,7 +124,7 @@ class ADMOImporter(object):
         eng_type = self._fc_klasse('engtype_ext', 'Ekstern', 'engagement_type')
         org_unit_type = self._fc_klasse('unittype_ext', 'Ekstern', 'org_unit_type')
 
-        unit_uuid = self.settings['integrations.ad.import_ou.mo_unit_uuid']
+        unit_uuid = self.global_settings['integrations.ad.import_ou.mo_unit_uuid']
         unit = self.helper.read_ou(uuid=unit_uuid)
         if 'status' in unit:  # Unit does not exist
             payload = payloads.unit_for_externals(unit_uuid, org_unit_type,
@@ -139,7 +138,7 @@ class ADMOImporter(object):
         uuids = {
             'job_function': job_type,
             'engagement_type': eng_type,
-            'unit_uuid': self.settings['integrations.ad.import_ou.mo_unit_uuid']
+            'unit_uuid': self.global_settings['integrations.ad.import_ou.mo_unit_uuid']
         }
         self.uuids = uuids
 
@@ -148,7 +147,7 @@ class ADMOImporter(object):
         Find all MO users in the unit for external employees.
         """
         mo_users = self.helper.read_organisation_people(
-            self.settings['integrations.ad.import_ou.mo_unit_uuid'])
+            self.global_settings['integrations.ad.import_ou.mo_unit_uuid'])
         return mo_users
 
     def _update_list_of_external_users_in_ad(self):
@@ -173,7 +172,7 @@ class ADMOImporter(object):
         :param ad_user: The ad_object to use as template for MO.
         :return: uuid of the the user.
         """
-        cpr_raw = ad_user.get(self.settings['integrations.ad.cpr_field'])
+        cpr_raw = ad_user.get(self.primary_settings['cpr_field'])
         if cpr_raw is None:
             return None
         cpr = cpr_raw.replace('-', '')
@@ -187,7 +186,7 @@ class ADMOImporter(object):
     def _connect_user_to_ad(self, ad_user):
         logger.info('Connect user to AD: {}'.format(ad_user['SamAccountName']))
         payload = payloads.connect_it_system_to_user(
-            ad_user, self.settings['integrations.opus.it_systems.ad']
+            ad_user, self.global_settings['integrations.opus.it_systems.ad']
         )
         logger.debug('AD account payload: {}'.format(payload))
         response = self.helper._mo_post('details/create', payload)
@@ -284,7 +283,7 @@ class ADMOImporter(object):
             it_systems = self.helper._mo_lookup(mo_uuid, url)
             for it_system in it_systems:
                 it_uuid = it_system['itsystem']['uuid']
-                if it_uuid == self.settings['integrations.opus.it_systems.ad']:
+                if it_uuid == self.global_settings['integrations.opus.it_systems.ad']:
                     found_it = True
             if not found_it:
                 self._connect_user_to_ad(ad_user)
