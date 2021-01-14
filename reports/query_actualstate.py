@@ -4,9 +4,6 @@
 #
 # Dette job skal læse alle brugere der har tilknytning til Medarbejder-organisationen og skrive en raport i en xlsx fil.
 # Det er lavet til Frederikshavns kommune der gerne vil se navn, email, rolle samt udvalg.
-import json
-import logging
-import pathlib
 
 import xlsxwriter
 from more_itertools import prepend
@@ -22,17 +19,6 @@ from exporters.sql_export.sql_table_defs import (
     Tilknytning,
 )
 from reports.XLSXExporter import XLSXExporter
-
-logger = logging.getLogger("Frederikshavn_MED")
-for name in logging.root.manager.loggerDict:
-    if name in ("Frederikshavn_MED",):
-        logging.getLogger(name).setLevel(logging.DEBUG)
-    else:
-        logging.getLogger(name).setLevel(logging.ERROR)
-logging.basicConfig(
-    format="%(levelname)s %(asctime)s %(name)s %(message)s",
-    level=logging.DEBUG,
-)
 
 
 def set_of_org_units(session, org_name: str) -> set:
@@ -172,12 +158,3 @@ def run_report(reporttype, sheetname: str, org_name: str, xlsx_file: str):
     excel = XLSXExporter(xlsx_file)
     excel.add_sheet(workbook, sheetname, data)
     workbook.close()
-
-
-if __name__ == "__main__":
-    # Læs fra settings
-    settings = json.loads((pathlib.Path(".") / "settings/settings.json").read_text())
-    org_name = settings["report.MED_org_name"]
-    xlsx_file = settings["report.MED_members_file"]
-    run_report(list_MED_members, "MED", org_name, xlsx_file)
-    run_report(list_employees, "Ansatte", "Frederikshavn Kommune", "Ansatte.xlsx")
