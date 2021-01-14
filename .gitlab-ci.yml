@@ -38,6 +38,12 @@ stages:
     - docker
 
 
+Lint Customers files:
+  extends: .lint-python
+  script:
+    - python -m black --diff --line-length 85 --check customers/
+    - python -m isort --diff --check-only customers/
+
 Lint LoraCache Integration:
   extends: .lint-python
   script:
