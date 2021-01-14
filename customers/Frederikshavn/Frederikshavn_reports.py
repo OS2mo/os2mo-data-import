@@ -20,9 +20,19 @@ if __name__ == "__main__":
     settings = json.loads((pathlib.Path(".") / "settings/settings.json").read_text())
     query_path = settings["mora.folder.query_export"]
     logger.debug("Running reports for Frederikshavn")
-    run_report(list_MED_members, "MED", "MED-organisationen", query_path+'/MED_medlemmer.xlsx')
+    run_report(
+        list_MED_members,
+        "MED",
+        "MED-organisationen",
+        query_path + "/MED_medlemmer.xlsx",
+    )
     logger.debug("MED report done.")
-    run_report(list_employees, "Ansatte", "Frederikshavn Kommune", query_path+"/Ansatte.xlsx")
+    run_report(
+        list_employees,
+        "Ansatte",
+        "Frederikshavn Kommune",
+        query_path + "/Ansatte.xlsx",
+    )
     logger.debug("Employee report done.")
 
     logger.debug("All reports for Frederikshavn done")
