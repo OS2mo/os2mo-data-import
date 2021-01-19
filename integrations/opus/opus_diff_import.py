@@ -16,6 +16,7 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from integrations.opus.calculate_primary import MOPrimaryEngagementUpdater
 from integrations.opus.opus_exceptions import UnknownOpusUnit
 from integrations.opus.opus_exceptions import EmploymentIdentifierNotUnique
+from integrations.opus.opus_helpers import read_settings_file
 
 logger = logging.getLogger("opusDiff")
 
@@ -58,19 +59,14 @@ EMPLOYEE_ADDRESS_CHECKS = {
 class OpusDiffImport(object):
     def __init__(self, latest_date, ad_reader, employee_mapping={}):
         logger.info('Opus diff importer __init__ started')
-        # TODO: Soon we have done this 4 times. Should we make a small settings
-        # importer, that will also handle datatype for specicic keys?
-        cfg_file = Path.cwd() / 'settings' / 'settings.json'
-        if not cfg_file.is_file():
-            raise Exception('No setting file')
-        self.settings = json.loads(cfg_file.read_text())
+        self.settings = self._read_settings()
         self.filter_ids = self.settings.get('integrations.opus.units.filter_ids', [])
 
         self.session = Session()
         self.employee_forced_uuids = employee_mapping
         self.ad_reader = ad_reader
 
-        self.helper = MoraHelper(hostname=self.settings['mora.base'],
+        self.helper = self._get_mora_helper(hostname=self.settings['mora.base'],
                                  use_cache=False)
         try:
             self.org_uuid = self.helper.read_organisation()
@@ -78,7 +74,7 @@ class OpusDiffImport(object):
             logger.error(e)
             print(e)
             exit()
-        self.updater = MOPrimaryEngagementUpdater()
+        self.updater = self._primary_updater()
 
         self.engagement_types, _ = self._find_classes('engagement_type')
         self.unit_types, self.unit_type_facet = self._find_classes('org_unit_type')
@@ -123,6 +119,14 @@ class OpusDiffImport(object):
         self.employees = None
         logger.info('__init__ done, now start export')
 
+    def _get_mora_helper(self, hostname, use_cache=False):
+        return MoraHelper(hostname=hostname, use_cache=use_cache)        
+
+    def _read_settings():
+        return read_settings_file()
+    def _primary_updater():
+        return MOPrimaryEngagementUpdater()
+
     def _find_classes(self, facet):
         class_types = self.helper.read_classes_in_facet(facet)
         types_dict = {}
@@ -141,12 +145,12 @@ class OpusDiffImport(object):
             logger.debug('Requst had no effect')
         return None
 
-    def parser(self, target_file):
+    def parser(self, target_file, filter_ids):
         data = xmltodict.parse(target_file.read_text())['kmd']
-        self.units = data['orgUnit'][1:]
-        self.units = opus_helpers.filter_units(self.units, self.filter_ids)
-        self.employees = data['employee']
-        return True
+        units = data['orgUnit'][1:]
+        units = opus_helpers.filter_units(units, filter_ids)
+        employees = data['employee']
+        return units, employees
 
     def _add_klasse_to_lora(self, klasse_name, facet_uuid):
         klasse_uuid = opus_helpers.generate_uuid(klasse_name)
@@ -852,8 +856,8 @@ class OpusDiffImport(object):
         Start an opus import, run the oldest available dump that
         has not already been imported.
         """
-        self.parser(xml_file)
-
+       
+        self.units, self.employees = self.parser(xml_file, self.filter_ids)
         for unit in self.units:
             last_changed = datetime.strptime(unit['@lastChanged'], '%Y-%m-%d')
             # Turns out org-unit updates are sometimes a day off
