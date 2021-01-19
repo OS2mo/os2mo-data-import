@@ -1,14 +1,15 @@
-import json
-import random
-import pathlib
-import logging
-import requests
 import argparse
+import json
+import logging
+import pathlib
+import random
 
+import requests
 from ad_common import AD
-from integrations.ad_integration import ad_reader
-from integrations.ad_integration import ad_logger
 from os2mo_helpers.mora_helpers import MoraHelper
+from tqdm import tqdm
+
+from integrations.ad_integration import ad_logger, ad_reader
 
 LOG_FILE = 'sync_mo_uuid_to_ad.log'
 logger = logging.getLogger('MoUuidAdSync')
@@ -64,7 +65,7 @@ class SyncMoUuidToAd(AD):
 
         logger.info('Will now attempt to sync {} users'.format(len(all_users)))
 
-        for user in all_users:
+        for user in tqdm(all_users):
             self.stats['attempted_users'] += 1
             cpr = user.get(self.all_settings['primary']['cpr_field'])
             separator = self.all_settings['primary'].get('cpr_separator', '')
@@ -78,7 +79,6 @@ class SyncMoUuidToAd(AD):
             expected_mo_uuid = user.get(
                 self.settings['integrations.ad.write.uuid_field'])
             if expected_mo_uuid == mo_uuid:
-                logger.info('uuid for {} correct in AD'.format(user))
                 continue
 
             server_string = ''
@@ -97,9 +97,9 @@ class SyncMoUuidToAd(AD):
                 self.settings['integrations.ad.write.uuid_field'] +
                 "\"=\"" + mo_uuid + "\"} " + server_string
             )
-            logger.debug('PS-script: {}'.format(ps_script))
             response = self._run_ps_script(ps_script)
-            logger.debug('Response: {}'.format(response))
+                if response: 
+                    logger.exception('Unexpected response: {}'.format(response))
             self.stats['updated'] += 1
         print(self.stats)
 
