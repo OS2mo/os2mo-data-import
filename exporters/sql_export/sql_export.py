@@ -266,6 +266,7 @@ class SqlExport(object):
                     værdi=address_info['value'],
                     dar_uuid=address_info['dar_uuid'],
                     adressetype_uuid=address_info['adresse_type'],
+                    adressetype_bvn=address_info['user_key'],
                     adressetype_scope=address_info['scope'],
                     adressetype_titel=self.lc.classes[
                         address_info['adresse_type']
