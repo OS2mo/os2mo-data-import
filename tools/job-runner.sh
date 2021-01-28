@@ -501,72 +501,72 @@ exports(){
         && return 1 # exports depend on imports
 
     if [ "${RUN_LC_FOR_JOBS_DB_EXPORT}" == "true" ]; then
-        run-job exports_lc_for_jobs_db || return 2
+        run-job exports_lc_for_jobs_db 
     fi
 
     if [ "${RUN_ACTUAL_STATE_EXPORT}" == "true" ]; then
-        run-job exports_actual_state_export || return 2
+        run-job exports_actual_state_export 
     fi
 
     if [ "${RUN_HISTORIC_SQL_EXPORT}" == "true" ]; then
-        run-job exports_historic_sql_export || return 2
+        run-job exports_historic_sql_export 
     fi
 
     if [ "${RUN_OS2SYNC}" == "true" ]; then
-        run-job exports_os2sync || return 2
+        run-job exports_os2sync 
     fi
 
     if [ "${RUN_MOX_STS_ORGSYNC}" == "true" ]; then
-        run-job exports_mox_stsorgsync || return 2
+        run-job exports_mox_stsorgsync 
     fi
 
     if [ "${RUN_QUERIES_BALLERUP}" == "true" ]; then
-        run-job exports_queries_ballerup || return 2
+        run-job exports_queries_ballerup 
     fi
 
     if [ "${RUN_EXPORT_EMUS}" == "true" ]; then
-        run-job exports_viborg_emus || return 2
+        run-job exports_viborg_emus 
     fi
 
     if [ "${RUN_EXPORTS_VIBORG_EKSTERNE}" == "true" ]; then
-        run-job exports_viborg_eksterne || return 2
+        run-job exports_viborg_eksterne 
     fi
 
     if [ "${RUN_EXPORTS_OS2MO_PHONEBOOK}" == "true" ]; then
-        run-job exports_os2phonebook_export || return 2
+        run-job exports_os2phonebook_export 
     fi
 
     if [ "${RUN_EXPORTS_MO_UUID_TO_AD}" == "true" ]; then
-        run-job exports_sync_mo_uuid_to_ad || return 2
+        run-job exports_sync_mo_uuid_to_ad 
     fi
 
     if [ "${RUN_CPR_UUID}" == "true" ]; then
         # this particular report is not allowed to fail
-        run-job exports_cpr_uuid || return 2
+        run-job exports_cpr_uuid 
     fi
 
     if [ "${RUN_EXPORTS_AD_LIFE_CYCLE}" == "true" ]; then
-        run-job exports_ad_life_cycle || return 2
+        run-job exports_ad_life_cycle 
     fi
 
     if [ "${RUN_EXPORTS_MO_TO_AD_SYNC}" == "true" ]; then
-        run-job exports_mo_to_ad_sync || return 2
+        run-job exports_mo_to_ad_sync 
     fi
 
     if [ "${RUN_MOX_ROLLE}" == "true" ]; then
-        run-job exports_mox_rollekatalog || return 2
+        run-job exports_mox_rollekatalog 
     fi
 
     if [ "${RUN_PLAN2LEARN}" == "true" ]; then
-        run-job exports_plan2learn || return 2
+        run-job exports_plan2learn 
     fi
 
     if [ "${RUN_EXPORTS_TEST}" == "true" ]; then
-        run-job exports_test || return 2
+        run-job exports_test 
     fi
 
     if [ "${RUN_EXPORTS_DUMMY}" == "true" ]; then
-        run-job exports_dummy || return 2
+        run-job exports_dummy 
     fi
 }
 
@@ -578,23 +578,23 @@ reports(){
         && return 1 # reports depend on imports
 
     if [ "${RUN_SD_DB_OVERVIEW}" == "true" ]; then
-        run-job reports_sd_db_overview || return 2
+        run-job reports_sd_db_overview 
     fi
     
     if [ "${RUN_OPUS_DB_OVERVIEW}" == "true" ]; then
-        run-job reports_opus_db_overview || echo "error in reports_opus_db_overview - continuing"
+        run-job reports_opus_db_overview 
     fi
 
     if [ "${RUN_VIBORG_MANAGERS}" == "true" ]; then
-        run-job reports_viborg_managers || return 2
+        run-job reports_viborg_managers 
     fi
 
     if [ "${RUN_REPORTS_FREDERIKSHAVN}" == "true" ]; then
-        run-job reports_frederikshavn || return 2
+        run-job reports_frederikshavn 
     fi
 
     if [ "${RUN_REPORTS_DUMMY}" == "true" ]; then
-        run-job reports_dummy || return 2
+        run-job reports_dummy 
     fi
 }
 
