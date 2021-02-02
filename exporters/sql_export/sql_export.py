@@ -99,6 +99,7 @@ class SqlExport(object):
             self.lc.calculate_derived_unit_data()
             self.lc.calculate_primary_engagements()
 
+        self.session = Session()
         start_delivery_time = timestamp()
         self._update_receipt(kvittering, start_delivery_time)
 
