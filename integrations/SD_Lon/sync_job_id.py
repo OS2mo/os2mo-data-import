@@ -30,7 +30,7 @@ def setup_logging():
     )
 
 
-class JobIdSync(object):
+class JobIdSync:
     def __init__(self):
         logger.info('Start sync')
         atexit.register(self.at_exit)
