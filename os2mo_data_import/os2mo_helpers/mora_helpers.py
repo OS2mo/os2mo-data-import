@@ -10,12 +10,13 @@
 Helper class to make a number of pre-defined queries into MO
 """
 
-import os
-import csv
 import codecs
-import logging
-import requests
+import csv
 import datetime
+import logging
+import os
+
+import requests
 from anytree import Node
 from more_itertools import only
 
@@ -343,7 +344,7 @@ class MoraHelper:
                                              only_primary=only_primary,
                                              use_cache=False,
                                              calculate_primary=calculate_primary)
-                engagements = engagements + engagement
+                engagements = engagements + [engagement]
         return engagements
 
     def read_user_association(self, user, at=None, read_all=False,
