@@ -1,21 +1,24 @@
-# -- coding: utf-8 --
 import json
 import logging
+from datetime import datetime, timedelta
+from operator import itemgetter
+from pathlib import Path
+
+import click
 import requests
 import xmltodict
-
-from pathlib import Path
-from requests import Session
-from datetime import datetime
-from datetime import timedelta
-
 from integrations import dawa_helper
-from integrations.opus import payloads
-from integrations.opus import opus_helpers
-from os2mo_helpers.mora_helpers import MoraHelper
+from integrations.ad_integration import ad_reader
+from integrations.opus import opus_helpers, payloads
 from integrations.opus.calculate_primary import MOPrimaryEngagementUpdater
-from integrations.opus.opus_exceptions import UnknownOpusUnit
-from integrations.opus.opus_exceptions import EmploymentIdentifierNotUnique
+from integrations.opus.opus_exceptions import (EmploymentIdentifierNotUnique,
+                                               ImporterrunNotCompleted,
+                                               RunDBInitException,
+                                               UnknownOpusUnit)
+from integrations.SD_Lon.db_overview import DBOverview
+from os2mo_data_import import ImportHelper
+from os2mo_helpers.mora_helpers import MoraHelper
+from requests import Session
 
 logger = logging.getLogger("opusDiff")
 
@@ -37,21 +40,19 @@ logging.basicConfig(
     level=LOG_LEVEL,
     filename=LOG_FILE
 )
-
-
 UNIT_ADDRESS_CHECKS = {
-    'seNr': 'opus.addresses.unit.se',
-    'cvrNr': 'opus.addresses.unit.cvr',
-    'eanNr': 'opus.addresses.unit.ean',
-    'pNr': 'opus.addresses.unit.pnr',
-    'phoneNumber': 'opus.addresses.unit.phoneNumber',
-    'dar': 'opus.addresses.unit.dar'
+    'seNr': 'SE',
+    'cvrNr': 'CVR',
+    'eanNr': 'EAN',
+    'pNr': 'Pnummer',
+    'phoneNumber': 'Telefon',
+    'dar': 'Postadresse'
 }
 
 EMPLOYEE_ADDRESS_CHECKS = {
-    'phone': 'opus.addresses.employee.phone',
-    'email': 'opus.addresses.employee.email',
-    'dar': 'opus.addresses.employee.dar'
+    'phone': 'Telefon',
+    'email': 'Email',
+    'dar': 'Postadresse'
 }
 
 
@@ -74,6 +75,11 @@ class OpusDiffImport(object):
                                  use_cache=False)
         try:
             self.org_uuid = self.helper.read_organisation()
+        except KeyError:
+            msg = 'No root organisation in MO'
+            logger.warning(msg)
+            print(msg)
+            return
         except requests.exceptions.RequestException as e:
             logger.error(e)
             print(e)
@@ -344,9 +350,9 @@ class OpusDiffImport(object):
             if opus_addresses.get(addr_type) is None:
                 continue
 
-            current = mo_addresses.get(self.settings[setting])
+            current = mo_addresses.get(self.employee_address_types[setting])
             address_args = {
-                'address_type': {'uuid': self.settings[setting]},
+                'address_type': {'uuid': self.employee_address_types[setting]},
                 'value': opus_addresses[addr_type],
                 'validity': {
                     'from': self.latest_date.strftime('%Y-%m-%d'),
@@ -389,9 +395,9 @@ class OpusDiffImport(object):
             if unit.get(addr_type) is None:
                 continue
 
-            current = address_dict.get(self.settings[setting])
+            current = address_dict.get(self.org_unit_address_types[setting])
             args = {
-                'address_type': {'uuid': self.settings[setting]},
+                'address_type': {'uuid': self.org_unit_address_types[setting]},
                 'value': unit[addr_type],
                 'validity': {
                     'from': self.latest_date.strftime('%Y-%m-%d'),
@@ -458,6 +464,9 @@ class OpusDiffImport(object):
         :param employee: Relevent Opus employee object.
         :return: True if update happended, False if not.
         """
+        if employee['orgUnit'] in self.filter_ids:
+            logger.warning("Engagement is to a filtered unit.")
+            return False
         job_function, eng_type = self._job_and_engagement_type(employee)
         unit_uuid = opus_helpers.generate_uuid(employee['orgUnit'])
 
