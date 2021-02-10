@@ -862,6 +862,8 @@ class OpusDiffImport(object):
         has not already been imported.
         """
         self.parser(xml_file)
+        self.org_unit_address_types= self.helper.read_org_unit_address_types()
+        self.employee_address_types = self.helper.read_employee_address_types()
 
         for unit in self.units:
             last_changed = datetime.strptime(unit['@lastChanged'], '%Y-%m-%d')
