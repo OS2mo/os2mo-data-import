@@ -191,8 +191,6 @@ disse nøgler i ``settings.json``:
  * ``opus.addresses.unit.pnr``: UUID på p-nummer for enheder.
  * ``opus.addresses.unit.phoneNumber``:  UUID på telefonnummer for enheder.
  * ``opus.addresses.unit.dar``: UUID på postaddresser for enheder.
- * ``opus.it_systems.ad``:  UUID på IT-systemet 'Active Directory'
- * ``opus.it_systems.opus``: UUID på IT-systemet 'Opus'
 
 Klasserne oprettes i forbindelse med førstegangsimporten, og UUID'erne kan findes ved
 hjælp af disse tre end-points i MO:
