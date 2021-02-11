@@ -5,6 +5,7 @@ from pathlib import Path
 
 import requests
 import xmltodict
+from exporters.utils import load_settings
 from integrations import dawa_helper
 from integrations.ad_integration import ad_reader
 from integrations.opus import opus_helpers, payloads
@@ -14,6 +15,7 @@ from integrations.opus.opus_exceptions import (EmploymentIdentifierNotUnique,
                                                UnknownOpusUnit)
 from os2mo_helpers.mora_helpers import MoraHelper
 from requests import Session
+from tqdm import tqdm
 
 logger = logging.getLogger("opusDiff")
 
@@ -57,7 +59,7 @@ class OpusDiffImport(object):
     def __init__(self, latest_date, ad_reader, employee_mapping={}):
         logger.info('Opus diff importer __init__ started')
 
-        self.settings = opus_helpers.load_settings()
+        self.settings = load_settings()
         self.filter_ids = self.settings.get('integrations.opus.units.filter_ids', [])
 
         self.session = Session()
@@ -96,8 +98,8 @@ class OpusDiffImport(object):
         # Potential to cut ~30s by parsing this:
         # /organisationfunktion?funktionsnavn=Rolle&virkningFra=2019-01-01
         self.role_cache = []
-        units = self.helper._mo_lookup(self.org_uuid, 'o/{}/ou?limit=1000000000')
-        for unit in units['items']:
+        units = self.helper._mo_lookup(self.org_uuid, 'o/{}/ou')
+        for unit in tqdm(units['items'], desc="Update roles"):
             for validity in ['past', 'present', 'future']:
                 url = 'ou/{}/details/role?validity=' + validity
                 roles = self.helper._mo_lookup(unit['uuid'], url)
@@ -849,14 +851,14 @@ class OpusDiffImport(object):
         """
         self.units, self.employees = self.parser(xml_file, self.filter_ids)
 
-        for unit in self.units:
+        for unit in tqdm(self.units, desc="Update units"):
             last_changed = datetime.strptime(unit['@lastChanged'], '%Y-%m-%d')
             # Turns out org-unit updates are sometimes a day off
             last_changed = last_changed + timedelta(days=1)
             if last_changed > self.latest_date:
                 self.update_unit(unit)
 
-        for employee in self.employees:
+        for employee in tqdm(self.employees, desc="Update employees"):
             last_changed_str = employee.get('@lastChanged')
             if last_changed_str is not None:  # This is a true employee-object.
                 last_changed = datetime.strptime(last_changed_str, '%Y-%m-%d')
@@ -921,7 +923,7 @@ def start_opus_diff(ad_reader=None):
 
 if __name__ == '__main__':
     
-    SETTINGS = opus_helpers.load_settings()
+    SETTINGS = load_settings()
 
     ad_reader = ad_reader.ADParameterReader()
 

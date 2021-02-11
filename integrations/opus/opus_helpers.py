@@ -6,7 +6,6 @@ import pathlib
 import pickle
 import sqlite3
 import uuid
-from functools import lru_cache
 from operator import itemgetter
 from pathlib import Path
 
@@ -18,14 +17,6 @@ from integrations.opus.opus_exceptions import (ImporterrunNotCompleted,
                                                RedundantForceException,
                                                RunDBInitException)
 
-
-@lru_cache
-def load_settings():
-    cfg_file = Path.cwd() / 'settings' / 'settings.json'
-    if not cfg_file.is_file():
-        raise Exception('No setting file')
-    return json.loads(cfg_file.read_text())
-SETTINGS = load_settings()
 
 DUMP_PATH = Path(SETTINGS['integrations.opus.import.xml_path'])
 START_DATE = datetime.datetime(2019, 1, 1, 0, 0)

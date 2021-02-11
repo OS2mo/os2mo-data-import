@@ -4,6 +4,7 @@ import pathlib
 from pathlib import Path
 
 import xmltodict
+from exporters.utils import load_settings
 from integrations import dawa_helper
 from integrations.opus import opus_helpers
 from integrations.opus.opus_exceptions import UnknownOpusAction
@@ -37,7 +38,7 @@ class OpusImport(object):
         """ If import first is False, the first unit will be skipped """
         self.org_uuid = None
 
-        self.settings = opus_helpers.load_settings()
+        self.settings = load_settings()
         self.filter_ids = self.settings.get('integrations.opus.units.filter_ids', [])
 
         self.importer = importer
@@ -430,7 +431,7 @@ def start_opus_import(importer, ad_reader=None, force=False):
     Start an opus import, run the oldest available dump that
     has not already been imported.
     """
-    SETTINGS = opus_helpers.load_settings()
+    SETTINGS = load_settings()
     dumps = opus_helpers.read_available_dumps()
 
     run_db = Path(SETTINGS['integrations.opus.import.run_db'])
