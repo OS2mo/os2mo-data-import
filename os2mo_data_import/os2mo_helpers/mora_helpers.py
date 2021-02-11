@@ -228,26 +228,6 @@ class MoraHelper:
         org_enhed = self._mo_lookup(uuid, 'ou/{}', at, use_cache)
         return org_enhed
 
-    def read_org_unit_address_types(self):
-        """Return a dict with names and uuids of address types for organisational units
-
-        :return: Dict with the names and uuids of org_unit_address_types
-        """
-        org_unit_address_types = self._mo_lookup('', 'f/org_unit_address_type/')
-        org_unit_address_types = org_unit_address_types['data']['items']
-        org_unit_address_types_map = {t["name"]:t["uuid"] for t in org_unit_address_types}
-        return org_unit_address_types_map
-    
-    def read_employee_address_types(self):
-        """Return a dict with names and uuids of address types for employees
-
-        :return: Dict with the names and uuids of employee_address_types
-        """
-        employee_address_types = self._mo_lookup('', 'f/employee_address_type/')
-        employee_address_types = employee_address_types['data']['items']
-        employee_address_types_map = {t["name"]:t["uuid"] for t in employee_address_types}
-        return employee_address_types_map
-        
     def read_ou_address(self, uuid, at=None, use_cache=None, scope="DAR",
                         return_all=False):
         """Return a dict with the data available about an OU.

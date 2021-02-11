@@ -50,9 +50,9 @@ UNIT_ADDRESS_CHECKS = {
 }
 
 EMPLOYEE_ADDRESS_CHECKS = {
-    'phone': 'Telefon',
-    'email': 'Email',
-    'dar': 'Postadresse'
+    'phone': 'TelefonEmployee',
+    'email': 'EmailEmployee',
+    'dar': 'AdressePostEmployee'
 }
 
 
@@ -94,6 +94,8 @@ class OpusDiffImport(object):
         self.manager_types, self.manager_type_facet = self._find_classes(
             'manager_type')
         self.responsibilities, _ = self._find_classes('responsibility')
+        self.org_unit_address_types, _ = self._find_classes('org_unit_address_type')
+        self.employee_address_types, _ = self._find_classes('employee_address_type')
 
         # TODO, this should also be done be _find_classes
         logger.info('Read job_functions')
@@ -346,13 +348,13 @@ class OpusDiffImport(object):
         mo_addresses = self._condense_employee_mo_addresses(mo_uuid)
         logger.info('Addresses to be synced to MO: {}'.format(opus_addresses))
 
-        for addr_type, setting in EMPLOYEE_ADDRESS_CHECKS.items():
+        for addr_type, mo_addr_type in EMPLOYEE_ADDRESS_CHECKS.items():
             if opus_addresses.get(addr_type) is None:
                 continue
 
-            current = mo_addresses.get(self.employee_address_types[setting])
+            current = mo_addresses.get(self.employee_address_types[mo_addr_type])
             address_args = {
-                'address_type': {'uuid': self.employee_address_types[setting]},
+                'address_type': {'uuid': self.employee_address_types[mo_addr_type]},
                 'value': opus_addresses[addr_type],
                 'validity': {
                     'from': self.latest_date.strftime('%Y-%m-%d'),
@@ -389,15 +391,15 @@ class OpusDiffImport(object):
                 logger.warning('Failed to lookup {}, {}'.format(unit['street'],
                                                                 unit['zipCode']))
 
-        for addr_type, setting in UNIT_ADDRESS_CHECKS.items():
-            # addr_type is the opus name for the address, the MO uuid
-            # for the corresponding class is found in settings.
+        for addr_type, mo_addr_type in UNIT_ADDRESS_CHECKS.items():
+            # addr_type is the opus name for the address, mo_addr_type 
+            # is read from MO
             if unit.get(addr_type) is None:
                 continue
 
-            current = address_dict.get(self.org_unit_address_types[setting])
+            current = address_dict.get(self.org_unit_address_types[mo_addr_type])
             args = {
-                'address_type': {'uuid': self.org_unit_address_types[setting]},
+                'address_type': {'uuid': self.org_unit_address_types[mo_addr_type]},
                 'value': unit[addr_type],
                 'validity': {
                     'from': self.latest_date.strftime('%Y-%m-%d'),
@@ -862,8 +864,6 @@ class OpusDiffImport(object):
         has not already been imported.
         """
         self.parser(xml_file)
-        self.org_unit_address_types= self.helper.read_org_unit_address_types()
-        self.employee_address_types = self.helper.read_employee_address_types()
 
         for unit in self.units:
             last_changed = datetime.strptime(unit['@lastChanged'], '%Y-%m-%d')
