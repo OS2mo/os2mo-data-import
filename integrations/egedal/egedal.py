@@ -1,14 +1,14 @@
 import os
 
-from os2mo_data_import import ImportHelper
 from integrations.SD_Lon import sd_importer
+from os2mo_data_import import ImportHelper
 from os2mo_data_import.caching_import import CachingImportUtility
 
-MOX_BASE = os.environ.get('MOX_BASE', 'http://localhost:8080')
-MORA_BASE = os.environ.get('MORA_BASE', 'http://localhost:5000')
+MOX_BASE = os.environ.get("MOX_BASE", "http://localhost:8080")
+MORA_BASE = os.environ.get("MORA_BASE", "http://localhost:5000")
 
 # Import of Administration
-adm_name = 'AdmOrg'
+adm_name = "AdmOrg"
 
 importer = ImportHelper(
     create_defaults=True,
@@ -52,13 +52,13 @@ importer = ImportHelper(
 
 
 # Import of Lønorganisation
-loen_name = 'LønOrg'
+loen_name = "LønOrg"
 
 importer.add_klasse(
     identifier=loen_name,
-    facet_type_ref='org_unit_type',
+    facet_type_ref="org_unit_type",
     user_key=loen_name,
-    scope='TEXT',
+    scope="TEXT",
     title=loen_name,
 )
 
@@ -67,7 +67,7 @@ importer.add_organisation_unit(
     name=loen_name,
     user_key=loen_name,
     type_ref=loen_name,
-    date_from='1930-01-01',
+    date_from="1930-01-01",
     date_to=None,
     parent_ref=None,
 )

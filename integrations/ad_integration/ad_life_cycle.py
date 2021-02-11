@@ -8,7 +8,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 
 from exporters.sql_export.lora_cache import LoraCache
 from integrations.ad_integration import ad_logger, ad_reader, ad_writer
-from integrations.ad_integration.ad_exceptions import NoPrimaryEngagementException
+from integrations.ad_integration.ad_exceptions import \
+    NoPrimaryEngagementException
 from integrations.ad_integration.utils import progress_iterator
 
 logger = logging.getLogger("CreateAdUsers")

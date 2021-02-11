@@ -15,9 +15,7 @@ class TestADWriter(TestCase, TestADWriterMixin):
     def setUp(self):
         self._setup_adwriter()
 
-    def _verify_identitical_common_code(
-        self, num_expected_scripts, num_common_lines=5
-    ):
+    def _verify_identitical_common_code(self, num_expected_scripts, num_common_lines=5):
         """Verify that common code in all scripts is identitical.
 
         I.e. that all scripts start with the same num_common_lines lines.

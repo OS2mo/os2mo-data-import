@@ -580,9 +580,7 @@ class TestUsernameCreation(unittest.TestCase):
                 user_name = name_creator.create_username(name)
                 if not user_name[0] == correct_user_name:
                     success = False
-                    print(
-                        "Got: {}, expected: {}".format(user_name, correct_user_name)
-                    )
+                    print("Got: {}, expected: {}".format(user_name, correct_user_name))
         return success
 
     def test_pia_munk_jensen(self):

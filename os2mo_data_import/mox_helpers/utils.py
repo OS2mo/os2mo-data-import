@@ -13,7 +13,7 @@ def async_to_sync(f):
             await sleep(seconds)
 
         sleepy(5)
-    
+
     Args:
         f (async function): The async function to wrap and make synchronous.
 

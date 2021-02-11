@@ -6,4 +6,5 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 
-from integration_abstraction.integration_abstraction import IntegrationAbstraction
+from integration_abstraction.integration_abstraction import \
+    IntegrationAbstraction

@@ -38,64 +38,12 @@ stages:
     - docker
 
 
-Lint Customers files:
+Lint files:
   extends: .lint-python
   script:
-    - python -m black --diff --line-length 85 --check customers/
-    - python -m isort --profile black --diff --check-only customers/
+    - python -m black --diff --check .
+    - python -m isort --profile black --diff --check-only .
 
-Lint LoraCache Integration:
-  extends: .lint-python
-  script:
-    - python -m black --diff --line-length 85 --check exporters/sql_export/tests/*.py
-    - python -m isort --diff --check-only exporters/sql_export/tests/*.py
-
-Lint AD Integration:
-  extends: .lint-python
-  script:
-    - cd integrations/ad_integration/
-    - python -m black --diff --line-length 85 --check tests/* utils.py ad_template_engine.py
-    - python -m isort --diff --check-only tests/* utils.py ad_template_engine.py
-
-Lint SetAlias Tool:
-  extends: .lint-python
-  script:
-    - python -m black --diff --line-length 85 --check tools/snurrebasser/set_alias.py
-    - python -m isort --diff --check-only tools/snurrebasser/set_alias.py
-
-Lint SDLoen Integration:
-  extends: .lint-python
-  script:
-    - cd integrations/SD_Lon/
-    - python -m black --diff --line-length 85 --check db_overview.py sd_cli.py sd_common.py tests/*
-    - python -m isort --diff --check-only db_overview.py sd_cli.py sd_common.py tests/*
-
-Lint OPUS Org Tree Print:
-  extends: .lint-python
-  script:
-    - cd integrations/opus/org_tree_print/
-    - python -m black --diff --line-length 85 --check *.py
-    - python -m isort --diff --check-only *.py
-
-Lint Reports:
-  extends: .lint-python
-  script:
-    - python -m black --diff --line-length 85 --check reports/query_actualstate.py reports/XLSXExporter.py reports/os2mo_tests/test_query_actualstate.py reports/os2mo_tests/test_XLSXExporter.py 
-    - python -m isort --profile black --check-only reports/query_actualstate.py reports/XLSXExporter.py reports/os2mo_tests/test_query_actualstate.py reports/os2mo_tests/test_XLSXExporter.py 
-
-Lint Exporter Utils:
-  extends: .lint-python
-  script:
-    - cd exporters/utils/
-    - python -m black --diff --line-length 85 --check *.py tests/*.py
-    - python -m isort --diff --check-only *.py tests/*.py
-
-Lint Tools:
-  extends: .lint-python
-  script:
-    - cd tools/
-    - python -m black --diff --line-length 85 --check uuid_replace.py
-    - python -m isort --diff --check-only uuid_replace.py
 
 
 # Test stage

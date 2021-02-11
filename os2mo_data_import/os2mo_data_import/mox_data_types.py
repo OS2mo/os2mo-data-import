@@ -26,6 +26,7 @@ class Base(object):
     :param str date_from: Start date e.g. "1982-01-01"
     :param str date_to: End date e.g. "infinity"
     """
+
     def __init__(self):
 
         self.date_from = "1930-01-01"
@@ -46,7 +47,7 @@ class Base(object):
         if "integration_data" not in self.integration_data:
             return str()
 
-        return self.integration_data['integration_data']
+        return self.integration_data["integration_data"]
 
     def create_validity(self):
         """
@@ -59,10 +60,7 @@ class Base(object):
         if not self.date_from or not self.date_to:
             raise AssertionError("Date is not specified, cannot create validity")
 
-        return {
-            "from": self.date_from,
-            "to": self.date_to
-        }
+        return {"from": self.date_from, "to": self.date_to}
 
     def __repr__(self):
         return str(self.__dict__)
@@ -81,8 +79,15 @@ class Facet(Base):
     :param str date_to: End date e.g. "infinity"
     """
 
-    def __init__(self, user_key, uuid=None, organisation_uuid=None,
-                 klassifikation_uuid=None, date_from=None, date_to=None):
+    def __init__(
+        self,
+        user_key,
+        uuid=None,
+        organisation_uuid=None,
+        klassifikation_uuid=None,
+        date_from=None,
+        date_to=None,
+    ):
 
         # Init parent
         super().__init__()
@@ -93,8 +98,8 @@ class Facet(Base):
         self.organisation_uuid = str(organisation_uuid)
         self.klassifikation_uuid = str(klassifikation_uuid)
 
-        self.date_from = (date_from or "1930-01-01")
-        self.date_to = (date_to or "infinity")
+        self.date_from = date_from or "1930-01-01"
+        self.date_to = date_to or "infinity"
 
     def build(self):
         """
@@ -107,43 +112,38 @@ class Facet(Base):
         properties = {
             "brugervendtnoegle": self.user_key,
             "integrationsdata": self.validate_integration_data(),
-            "virkning": self.create_validity()
+            "virkning": self.create_validity(),
         }
 
-        attributter = {
-            "facetegenskaber": [properties]
-        }
+        attributter = {"facetegenskaber": [properties]}
 
         relationer = {
             "ansvarlig": [
                 {
                     "objekttype": "organisation",
                     "uuid": self.organisation_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
             ],
             "facettilhoerer": [
                 {
                     "objekttype": "klassifikation",
                     "uuid": self.klassifikation_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
-            ]
+            ],
         }
 
         tilstande = {
             "facetpubliceret": [
-                {
-                    "publiceret": "Publiceret",
-                    "virkning": self.create_validity()
-                }
+                {"publiceret": "Publiceret", "virkning": self.create_validity()}
             ]
         }
 
         return {
             "attributter": attributter,
             "relationer": relationer,
-            "tilstande": tilstande
+            "tilstande": tilstande,
         }
 
 
@@ -216,24 +216,33 @@ class Klasse(Base):
     :param str date_to: End date e.g. "infinity"
     """
 
-    def __init__(self, facet_type_ref, user_key, description=None,
-                 example=None, scope=None, title=None, uuid=None,
-                 date_from=None, date_to=None):
+    def __init__(
+        self,
+        facet_type_ref,
+        user_key,
+        description=None,
+        example=None,
+        scope=None,
+        title=None,
+        uuid=None,
+        date_from=None,
+        date_to=None,
+    ):
         super().__init__()
 
         self.facet_type_ref = facet_type_ref
         self.user_key = user_key
         self.description = description
         self.scope = scope
-        self.title = (title or user_key)
+        self.title = title or user_key
         self.example = example
         self.uuid = uuid
 
         self.organisation_uuid = None
         self.facet_uuid = None
 
-        self.date_from = (date_from or "1930-01-01")
-        self.date_to = (date_to or "infinity")
+        self.date_from = date_from or "1930-01-01"
+        self.date_to = date_to or "infinity"
 
     def build(self):
         """
@@ -244,20 +253,16 @@ class Klasse(Base):
         """
 
         if not self.organisation_uuid:
-            raise AssertionError(
-                "Organisation uuid is missing - cannot build"
-            )
+            raise AssertionError("Organisation uuid is missing - cannot build")
 
         if not self.facet_uuid:
-            raise AssertionError(
-                "Facet uuid is missing - cannot build"
-            )
+            raise AssertionError("Facet uuid is missing - cannot build")
 
         properties = {
             "brugervendtnoegle": self.user_key,
             "integrationsdata": self.validate_integration_data(),
             "titel": self.title,
-            "virkning": self.create_validity()
+            "virkning": self.create_validity(),
         }
 
         # Add all user specified properties
@@ -270,42 +275,37 @@ class Klasse(Base):
         if self.example:
             properties["eksempel"] = self.example
 
-        attributter = {
-            "klasseegenskaber": [properties]
-        }
+        attributter = {"klasseegenskaber": [properties]}
 
         relationer = {
             "ansvarlig": [
                 {
                     "objekttype": "organisation",
                     "uuid": self.organisation_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
             ],
             "facet": [
                 {
                     "objekttype": "facet",
                     "uuid": self.facet_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
-            ]
+            ],
         }
 
         tilstande = {
             "klassepubliceret": [
-                {
-                    "publiceret": "Publiceret",
-                    "virkning": self.create_validity()
-                }
+                {"publiceret": "Publiceret", "virkning": self.create_validity()}
             ]
         }
 
         payload = {
             "attributter": attributter,
             "relationer": relationer,
-            "tilstande": tilstande
+            "tilstande": tilstande,
         }
-        logger.debug('Klasse payload: {}'.format(payload))
+        logger.debug("Klasse payload: {}".format(payload))
         return payload
 
 
@@ -325,7 +325,7 @@ class Itsystem(Base):
         super().__init__()
 
         self.system_name = system_name
-        self.user_key = (user_key or system_name)
+        self.user_key = user_key or system_name
 
         self.organisation_uuid = None
 
@@ -340,35 +340,27 @@ class Itsystem(Base):
             "brugervendtnoegle": self.user_key,
             "integrationsdata": self.validate_integration_data(),
             "itsystemnavn": self.system_name,
-            "virkning": self.create_validity()
+            "virkning": self.create_validity(),
         }
 
-        attributter = {
-            "itsystemegenskaber": [properties]
-        }
+        attributter = {"itsystemegenskaber": [properties]}
 
         relationer = {
             "tilhoerer": [
-                {
-                    "uuid": self.organisation_uuid,
-                    "virkning": self.create_validity()
-                }
+                {"uuid": self.organisation_uuid, "virkning": self.create_validity()}
             ]
         }
 
         tilstande = {
             "itsystemgyldighed": [
-                {
-                    "gyldighed": "Aktiv",
-                    "virkning": self.create_validity()
-                }
+                {"gyldighed": "Aktiv", "virkning": self.create_validity()}
             ]
         }
 
         return {
             "attributter": attributter,
             "relationer": relationer,
-            "tilstande": tilstande
+            "tilstande": tilstande,
         }
 
 
@@ -389,8 +381,9 @@ class Klassifikation(Base):
     :param str date_to: End date e.g. "infinity"
     """
 
-    def __init__(self, user_key, parent_name, description,
-                 date_from=None, date_to=None):
+    def __init__(
+        self, user_key, parent_name, description, date_from=None, date_to=None
+    ):
 
         # Init parent
         super().__init__()
@@ -400,8 +393,8 @@ class Klassifikation(Base):
         self.parent_name = parent_name
 
         self.organisation_uuid = None
-        self.date_from = (date_from or "1930-01-01")
-        self.date_to = (date_to or "infinity")
+        self.date_from = date_from or "1930-01-01"
+        self.date_to = date_to or "infinity"
 
     def build(self):
         """
@@ -416,43 +409,38 @@ class Klassifikation(Base):
             "integrationsdata": self.validate_integration_data(),
             "beskrivelse": self.description,
             "kaldenavn": self.parent_name,
-            "virkning": self.create_validity()
+            "virkning": self.create_validity(),
         }
 
-        attributter = {
-            "klassifikationegenskaber": [properties]
-        }
+        attributter = {"klassifikationegenskaber": [properties]}
 
         relationer = {
             "ansvarlig": [
                 {
                     "objekttype": "organisation",
                     "uuid": self.organisation_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
             ],
             "ejer": [
                 {
                     "objekttype": "organisation",
                     "uuid": self.organisation_uuid,
-                    "virkning": self.create_validity()
+                    "virkning": self.create_validity(),
                 }
-            ]
+            ],
         }
 
         tilstande = {
             "klassifikationpubliceret": [
-                {
-                    "publiceret": "Publiceret",
-                    "virkning": self.create_validity()
-                }
+                {"publiceret": "Publiceret", "virkning": self.create_validity()}
             ]
         }
 
         return {
             "attributter": attributter,
             "relationer": relationer,
-            "tilstande": tilstande
+            "tilstande": tilstande,
         }
 
 
@@ -476,17 +464,24 @@ class Organisation(Base):
     :param str date_to: End date e.g. "infinity"
     """
 
-    def __init__(self, name, user_key=None, municipality_code=999,
-                 uuid=None, date_from=None, date_to=None):
+    def __init__(
+        self,
+        name,
+        user_key=None,
+        municipality_code=999,
+        uuid=None,
+        date_from=None,
+        date_to=None,
+    ):
         super().__init__()
 
         self.uuid = uuid
         self.name = name
-        self.user_key = (user_key or name)
+        self.user_key = user_key or name
         self.municipality_code = str(municipality_code)
 
-        self.date_from = (date_from or "1930-01-01")
-        self.date_to = (date_to or "infinity")
+        self.date_from = date_from or "1930-01-01"
+        self.date_to = date_to or "infinity"
 
     def build(self):
         """
@@ -499,14 +494,10 @@ class Organisation(Base):
             "brugervendtnoegle": self.user_key,
             "integrationsdata": self.validate_integration_data(),
             "organisationsnavn": self.name,
-            "virkning": self.create_validity()
+            "virkning": self.create_validity(),
         }
 
-        attributter = {
-            "organisationegenskaber": [
-                properties
-            ]
-        }
+        attributter = {"organisationegenskaber": [properties]}
 
         # Create urn value
         urn_municipality_code = "urn:dk:kommune:{code}".format(
@@ -515,24 +506,18 @@ class Organisation(Base):
 
         relationer = {
             "myndighed": [
-                {
-                    "urn": urn_municipality_code,
-                    "virkning": self.create_validity()
-                }
+                {"urn": urn_municipality_code, "virkning": self.create_validity()}
             ]
         }
 
         tilstande = {
             "organisationgyldighed": [
-                {
-                    "gyldighed": "Aktiv",
-                    "virkning": self.create_validity()
-                }
+                {"gyldighed": "Aktiv", "virkning": self.create_validity()}
             ]
         }
 
         return {
             "attributter": attributter,
             "relationer": relationer,
-            "tilstande": tilstande
+            "tilstande": tilstande,
         }

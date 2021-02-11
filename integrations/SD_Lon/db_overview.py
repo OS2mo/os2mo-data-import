@@ -4,6 +4,7 @@ import sqlite3
 from datetime import date, datetime
 
 import click
+
 from integrations.SD_Lon.sd_common import load_settings
 
 
@@ -27,9 +28,7 @@ class DBOverview(object):
         conn = sqlite3.connect(self.run_db, detect_types=sqlite3.PARSE_DECLTYPES)
         c = conn.cursor()
 
-        query = (
-            "SELECT " + ", ".join([*fields]) + " FROM runs ORDER BY id DESC LIMIT 1"
-        )
+        query = "SELECT " + ", ".join([*fields]) + " FROM runs ORDER BY id DESC LIMIT 1"
         c.execute(query)
         result = c.fetchone()
         if len(result) == 1:

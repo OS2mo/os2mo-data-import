@@ -5,25 +5,26 @@ import pathlib
 
 import requests
 import requests_kerberos
-from integrations.ad_integration import ad_logger
-from integrations.ad_integration.ad_common import AD
 from winrm import Session
 from winrm.exceptions import InvalidCredentialsError
 
+from integrations.ad_integration import ad_logger
+from integrations.ad_integration.ad_common import AD
+
 cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
 if not cfg_file.is_file():
-    raise Exception('No setting file')
+    raise Exception("No setting file")
 
 SETTINGS = json.loads(cfg_file.read_text())
 
-if not isinstance(SETTINGS.get('integrations.ad'), list):
-    raise Exception('integrations.ad skal angives som en liste af dicts (settings)')
+if not isinstance(SETTINGS.get("integrations.ad"), list):
+    raise Exception("integrations.ad skal angives som en liste af dicts (settings)")
 
-if len(SETTINGS.get('integrations.ad')) < 1:
-    raise Exception('integrations.ad skal indeholde mindst 1 AD (settings)')
+if len(SETTINGS.get("integrations.ad")) < 1:
+    raise Exception("integrations.ad skal indeholde mindst 1 AD (settings)")
 
 
-WINRM_HOST = SETTINGS.get('integrations.ad.winrm_host')
+WINRM_HOST = SETTINGS.get("integrations.ad.winrm_host")
 if not (WINRM_HOST):
     raise Exception("WINRM_HOST is missing")
 
@@ -31,14 +32,14 @@ logger = logging.getLogger("AdTestConnectivity")
 
 
 def test_basic_connectivity():
-    session=AD().session
+    session = AD().session
     try:
         r = session.run_cmd("ipconfig", ["/all"])
         error = None
     except requests_kerberos.exceptions.KerberosExchangeError as e:
         error = str(e)
     except InvalidCredentialsError as e:
-        error = 'Credentails not accepted by remote management server: {}'
+        error = "Credentails not accepted by remote management server: {}"
         error = error.format(e)
     except requests.exceptions.ConnectionError as e:
         error = "Unable to contact winrm_host {}, message: {}"
@@ -77,6 +78,7 @@ def test_full_ad_read(index):
     to access cpr-information in AD.
     """
     from ad_reader import ADParameterReader
+
     ad_reader = ADParameterReader(index=index)
 
     ad_reader.uncached_read_user(cpr="3111*")
@@ -114,8 +116,8 @@ def test_full_ad_read(index):
 
     for test_value in test_chars.values():
         if not test_value:
-            print('Finding occurences of special chars: {}'.format(test_chars))
-            print('(The more True the better)')
+            print("Finding occurences of special chars: {}".format(test_chars))
+            print("(The more True the better)")
             break
     return True
 
@@ -131,7 +133,7 @@ def test_ad_write_settings():
 
 
 def perform_read_test():
-    print('Test basic connectivity (Kerberos)')
+    print("Test basic connectivity (Kerberos)")
     status = "Success"
     basic_connection = test_basic_connectivity()
     if not basic_connection:
@@ -139,17 +141,17 @@ def perform_read_test():
         exit(1)
 
     for index in range(len(SETTINGS["integrations.ad"])):
-        print('Test AD {} contact'.format(index))
+        print("Test AD {} contact".format(index))
         ad_connection = test_ad_contact(index)
         if not ad_connection:
-            print('Unable to connect to AD {}'.format(index))
+            print("Unable to connect to AD {}".format(index))
             status = "Failure!!"
             continue
 
-        print('Test ability to read from AD {}'.format(index))
+        print("Test ability to read from AD {}".format(index))
         full_ad_read = test_full_ad_read(index)
         if not full_ad_read:
-            print('Unable to read users from AD {} correctly'.format(index))
+            print("Unable to read users from AD {} correctly".format(index))
             status = "Failure!!!"
             continue
 
@@ -210,10 +212,10 @@ def perform_write_test():
                 minimum_expected_fields[prop] = True
 
     if not all(minimum_expected_fields.values()):
-        print('An import field is now found on the tested users')
+        print("An import field is now found on the tested users")
         print(minimum_expected_fields)
     else:
-        print('Test of AD fields for writing is a success')
+        print("Test of AD fields for writing is a success")
 
 
 def cli():
@@ -230,7 +232,7 @@ def cli():
     if args.get("test_read_settings"):
         perform_read_test()
 
-    if args.get('test_write_settings'):
+    if args.get("test_write_settings"):
         perform_read_test()
         perform_write_test()
 

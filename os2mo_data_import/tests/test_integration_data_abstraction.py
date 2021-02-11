@@ -1,59 +1,63 @@
-import os
 import json
+import os
 import random
 import unittest
+
 import requests
 from integration_abstraction import IntegrationAbstraction
 
-MOX_BASE = os.environ.get('MOX_BASE', 'http://localhost:5000')
+MOX_BASE = os.environ.get("MOX_BASE", "http://localhost:5000")
 
 
 class IntegratioAbstractionTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.session = requests.Session()
-        self.mox_base = 'http://localhost:5000/'
-        self.resource = 'klassifikation/facet'
-        self.uuids = ['00000000-0000-0000-0000-000000000001',
-                      '00000000-0000-0000-0000-000000000002',
-                      '00000000-0000-0000-0000-000000000003',
-                      '00000000-0000-0000-0000-000000000004',
-                      '00000000-0000-0000-0000-000000000005']
+        self.mox_base = "http://localhost:5000/"
+        self.resource = "klassifikation/facet"
+        self.uuids = [
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000002",
+            "00000000-0000-0000-0000-000000000003",
+            "00000000-0000-0000-0000-000000000004",
+            "00000000-0000-0000-0000-000000000005",
+        ]
 
     def setUp(self):
-        with open('tests/facet_opret.json') as f:
+        with open("tests/facet_opret.json") as f:
             payload = json.load(f)
 
         service = self.mox_base + self.resource
         for uuid in self.uuids:
-            self.session.put(url=service + '/' + uuid, json=payload)
+            self.session.put(url=service + "/" + uuid, json=payload)
 
     def test_raw_write(self):
         """ Test that we can write a litteral string and read a key back """
-        ia = IntegrationAbstraction(self.mox_base, 'test', 'Jørgen')
+        ia = IntegrationAbstraction(self.mox_base, "test", "Jørgen")
         test_integration_data = json.dumps(
-            {"test": json.dumps(12345) + "Jørgen",
-             "system": json.dumps("98") + "Jør\\gen"}
+            {
+                "test": json.dumps(12345) + "Jørgen",
+                "system": json.dumps("98") + "Jør\\gen",
+            }
         )
-        ia._set_integration_data(self.resource, self.uuids[0],
-                                 test_integration_data)
+        ia._set_integration_data(self.resource, self.uuids[0], test_integration_data)
 
         key = ia.read_integration_data(self.resource, self.uuids[0])
         self.assertTrue(key == 12345)
 
     def test_field_write(self):
-        ia = IntegrationAbstraction(self.mox_base, 'system', 'Jørgen')
-        test_integration_data = json.dumps({"test": "12345Jørgen",
-                                            "system": "98Jør\\gen"})
-        ia._set_integration_data(self.resource, self.uuids[1],
-                                 test_integration_data)
-        set_value = '1'
+        ia = IntegrationAbstraction(self.mox_base, "system", "Jørgen")
+        test_integration_data = json.dumps(
+            {"test": "12345Jørgen", "system": "98Jør\\gen"}
+        )
+        ia._set_integration_data(self.resource, self.uuids[1], test_integration_data)
+        set_value = "1"
         ia.write_integration_data(self.resource, self.uuids[1], set_value)
         read_value = ia.read_integration_data(self.resource, self.uuids[1])
         self.assertTrue(set_value == read_value)
 
     def test_writing_complicated_value(self):
-        ia = IntegrationAbstraction(self.mox_base, 'system', 'Jørgen')
+        ia = IntegrationAbstraction(self.mox_base, "system", "Jørgen")
         set_value = 'kμl!%a/h\&#/##=)=&"rf'
         ia.write_integration_data(self.resource, self.uuids[2], set_value)
         read_value = ia.read_integration_data(self.resource, self.uuids[2])
@@ -63,8 +67,8 @@ class IntegratioAbstractionTests(unittest.TestCase):
         """
         Test that we can find a simple value by searchig for the value
         """
-        value = 'Klaff'
-        ia = IntegrationAbstraction(self.mox_base, 'simpel', 'STOP')
+        value = "Klaff"
+        ia = IntegrationAbstraction(self.mox_base, "simpel", "STOP")
 
         # Check we find the key
         ia.write_integration_data(self.resource, self.uuids[3], value)
@@ -82,7 +86,7 @@ class IntegratioAbstractionTests(unittest.TestCase):
         characters also used as escapes (?, #, &) will not work
         """
         value = 'abc"¤μ)(d'
-        ia = IntegrationAbstraction(self.mox_base, 'compløx', 'Jørgen')
+        ia = IntegrationAbstraction(self.mox_base, "compløx", "Jørgen")
 
         # Check we find the key
         ia.write_integration_data(self.resource, self.uuids[3], value)
@@ -97,19 +101,54 @@ class IntegratioAbstractionTests(unittest.TestCase):
         """
         Values can be nested, but they need to have string keys
         """
-        ia = IntegrationAbstraction(self.mox_base, 'system', 'Jørgen')
-        set_value = {'a': 2, 'b': 3, 'c': {'a': 1, 'b': 2, '5': {'def': 9}}}
+        ia = IntegrationAbstraction(self.mox_base, "system", "Jørgen")
+        set_value = {"a": 2, "b": 3, "c": {"a": 1, "b": 2, "5": {"def": 9}}}
         ia.write_integration_data(self.resource, self.uuids[2], set_value)
         read_value = ia.read_integration_data(self.resource, self.uuids[2])
         self.assertTrue(set_value == read_value)
 
     def _prepare_many_systems(self, uuids):
-        system_names = {'System', 'SD', 'ML-Gore', 'LØN', 'Løn', 'μ-system',
-                        'Black', 'White', '-', 'klaf', 'bang', 'integration',
-                        'Integration', 'INTEGRATION', '1', '2', '3', '4', '5'
-                        '6', '101', '1962', '1961', '1981', '1982', '1983',
-                        '1984', '1986', '1987', '1990', '1993', '1997', '2001',
-                        '2005', '2009', '2013', '2017', 'WE', 'WANT', 'MÅER'}
+        system_names = {
+            "System",
+            "SD",
+            "ML-Gore",
+            "LØN",
+            "Løn",
+            "μ-system",
+            "Black",
+            "White",
+            "-",
+            "klaf",
+            "bang",
+            "integration",
+            "Integration",
+            "INTEGRATION",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5" "6",
+            "101",
+            "1962",
+            "1961",
+            "1981",
+            "1982",
+            "1983",
+            "1984",
+            "1986",
+            "1987",
+            "1990",
+            "1993",
+            "1997",
+            "2001",
+            "2005",
+            "2009",
+            "2013",
+            "2017",
+            "WE",
+            "WANT",
+            "MÅER",
+        }
         ias = {}
         for system in system_names:
             uuid = random.choice(uuids)
@@ -129,8 +168,8 @@ class IntegratioAbstractionTests(unittest.TestCase):
             for system in system_names:
                 value = ias[system].read_integration_data(self.resource, uuid)
                 if value is not None:
-                    prefix = value[0:len(system)]
-                    nummeric = int(value[len(system):])
+                    prefix = value[0 : len(system)]
+                    nummeric = int(value[len(system) :])
                     self.assertTrue(prefix == system)
                     self.assertTrue(1 <= nummeric <= 999999)
 
@@ -156,8 +195,8 @@ class IntegratioAbstractionTests(unittest.TestCase):
         for system in system_names:
             value = ias[system].read_integration_data(self.resource, uuid)
             if value is not None:
-                prefix = value[0:len(system)]
-                nummeric = int(value[len(system):])
+                prefix = value[0 : len(system)]
+                nummeric = int(value[len(system) :])
                 self.assertTrue(prefix == system)
                 self.assertTrue(1 <= nummeric <= 999999)
 

@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 
 from integrations.os2sync.config import loggername
 
@@ -7,7 +7,6 @@ logger = logging.getLogger(loggername)
 
 
 class Session:
-
     def raise_for_status(self):
         pass
 

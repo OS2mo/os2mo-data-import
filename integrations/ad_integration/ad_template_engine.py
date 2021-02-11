@@ -1,5 +1,4 @@
 from jinja2 import Template
-
 from utils import dict_map, dict_partition, duplicates, lower_list
 
 # Parameters that should not be quoted
@@ -237,9 +236,7 @@ def prepare_settings_based_field_templates(jinja_map, cmd, settings):
         jinja_map[ad_field] = template
 
     if cmd == "New-ADUser":  # New user
-        jinja_map["UserPrincipalName"] = (
-            "{{ user_sam }}@" + write_settings["upn_end"]
-        )
+        jinja_map["UserPrincipalName"] = "{{ user_sam }}@" + write_settings["upn_end"]
         jinja_map[write_settings["uuid_field"]] = "{{ mo_values['uuid'] }}"
 
         # If local settings dictates a separator, we add it directly to the

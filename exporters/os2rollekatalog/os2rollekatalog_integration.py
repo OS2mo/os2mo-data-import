@@ -14,9 +14,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 import requests
-
 from os2mo_tools import mo_api
-
 
 cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
 if not cfg_file.is_file():
@@ -105,8 +103,8 @@ def get_org_units(connector):
         org_unit_uuid = org_unit["uuid"]
         # Fetch the OU again, as the 'parent' field is missing in the data
         # when listing all org units
-        ou_present = connector.get_ou_connector(org_unit_uuid, validity='present')
-        ou_future = connector.get_ou_connector(org_unit_uuid, validity='future')
+        ou_present = connector.get_ou_connector(org_unit_uuid, validity="present")
+        ou_future = connector.get_ou_connector(org_unit_uuid, validity="future")
         ou_connectors = (ou_present, ou_future)
 
         def get_parent_org_unit_uuid(ou):
@@ -162,8 +160,8 @@ def get_users(connector):
     for employee in employees:
 
         employee_uuid = employee["uuid"]
-        e_present = connector.get_employee_connector(employee_uuid, validity='present')
-        e_future = connector.get_employee_connector(employee_uuid, validity='future')
+        e_present = connector.get_employee_connector(employee_uuid, validity="present")
+        e_future = connector.get_employee_connector(employee_uuid, validity="future")
         e_connectors = (e_present, e_future)
 
         def get_employee_email(*engagement_connectors):

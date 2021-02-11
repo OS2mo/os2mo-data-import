@@ -54,29 +54,30 @@ def get_sts_user(session, uuid, allowed_unitids):
         sts_user["Person"]["Cpr"] = None
 
     addresses = []
-    for lc_address in session.query(
-        Adresse
-    ).filter(Adresse.bruger_uuid == uuid).all():
+    for lc_address in session.query(Adresse).filter(Adresse.bruger_uuid == uuid).all():
         address = {
             "address_type": {
                 "uuid": lc_address.adressetype_uuid,
-                "scope": scope_to_scope[lc_address.adressetype_scope]},
+                "scope": scope_to_scope[lc_address.adressetype_scope],
+            },
             "name": lc_address.værdi,
             "value": lc_address.dar_uuid,
-            "uuid": lc_address.uuid  # not used currently
+            "uuid": lc_address.uuid,  # not used currently
         }
         addresses.append(address)
     os2mo.addresses_to_user(sts_user, addresses)
 
     engagements = []
-    for lc_engagement in session.query(
-        Engagement
-    ).filter(Engagement.bruger_uuid == uuid).all():
-        engagements.append({
-            "uuid": lc_engagement.uuid,
-            "org_unit": {"uuid": lc_engagement.enhed_uuid},
-            "job_function": {"name": lc_engagement.stillingsbetegnelse_titel}
-        })
+    for lc_engagement in (
+        session.query(Engagement).filter(Engagement.bruger_uuid == uuid).all()
+    ):
+        engagements.append(
+            {
+                "uuid": lc_engagement.uuid,
+                "org_unit": {"uuid": lc_engagement.enhed_uuid},
+                "job_function": {"name": lc_engagement.stillingsbetegnelse_titel},
+            }
+        )
 
     os2mo.engagements_to_user(sts_user, engagements, allowed_unitids)
 
@@ -141,16 +142,21 @@ def is_ignored(unit, settings):
     """
 
     return (
-        unit.enhedstype_uuid in settings["OS2SYNC_IGNORED_UNIT_TYPES"] or
-        unit.enhedsniveau_uuid in settings["OS2SYNC_IGNORED_UNIT_LEVELS"])
+        unit.enhedstype_uuid in settings["OS2SYNC_IGNORED_UNIT_TYPES"]
+        or unit.enhedsniveau_uuid in settings["OS2SYNC_IGNORED_UNIT_LEVELS"]
+    )
 
 
 def get_sts_orgunit(session, uuid):
     base = session.query(Enhed).filter(Enhed.uuid == uuid).one()
 
     if is_ignored(base, settings):
-        logger.info("Ignoring %s (%s, %s)", base.uuid, base.enhedsniveau_titel,
-                    base.enhedstype_titel)
+        logger.info(
+            "Ignoring %s (%s, %s)",
+            base.uuid,
+            base.enhedsniveau_titel,
+            base.enhedstype_titel,
+        )
         return None
 
     top_unit = get_top_unit(session, base)
@@ -163,26 +169,25 @@ def get_sts_orgunit(session, uuid):
     if base.forældreenhed_uuid is not None:
         sts_org_unit["ParentOrgUnitUuid"] = base.forældreenhed_uuid
 
-    itconnections = session.query(ItForbindelse).filter(
-        ItForbindelse.enhed_uuid == uuid
-    ).all()
+    itconnections = (
+        session.query(ItForbindelse).filter(ItForbindelse.enhed_uuid == uuid).all()
+    )
     os2mo.itsystems_to_orgunit(
         sts_org_unit,
-        [{"itsystem": {"uuid": itf.it_system_uuid}} for itf in itconnections]
+        [{"itsystem": {"uuid": itf.it_system_uuid}} for itf in itconnections],
     )
 
     addresses = []
-    for lc_address in session.query(Adresse).filter(
-        Adresse.enhed_uuid == uuid
-    ).all():
+    for lc_address in session.query(Adresse).filter(Adresse.enhed_uuid == uuid).all():
         address = {
             "address_type": {
                 "uuid": lc_address.adressetype_uuid,
                 "user_key": lc_address.adressetype_bvn,
-                "scope": scope_to_scope[lc_address.adressetype_scope]},
+                "scope": scope_to_scope[lc_address.adressetype_scope],
+            },
             "name": lc_address.værdi,
             "value": lc_address.dar_uuid,
-            "uuid": lc_address.uuid  # not used currently
+            "uuid": lc_address.uuid,  # not used currently
         }
         addresses.append(address)
     os2mo.addresses_to_orgunit(sts_org_unit, addresses)

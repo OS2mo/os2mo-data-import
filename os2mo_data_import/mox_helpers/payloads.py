@@ -16,7 +16,12 @@ def _virkning(dato=None):
 def lora_facet(bvn, org_uuid, description=None):
 
     attributter = {
-        "facetegenskaber": [{"brugervendtnoegle": bvn, "virkning": _virkning(),}]
+        "facetegenskaber": [
+            {
+                "brugervendtnoegle": bvn,
+                "virkning": _virkning(),
+            }
+        ]
     }
     if description:
         attributter["facetegenskaber"][0]["beskrivelse"] = description
@@ -63,9 +68,7 @@ def lora_klasse(
     if scope:
         attributter["klasseegenskaber"][0]["omfang"] = scope
     tilstande = {
-        "klassepubliceret": [
-            {"publiceret": "Publiceret", "virkning": _virkning(dato)}
-        ]
+        "klassepubliceret": [{"publiceret": "Publiceret", "virkning": _virkning(dato)}]
     }
     relationer = {
         "facet": [

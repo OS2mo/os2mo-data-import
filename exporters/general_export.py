@@ -14,15 +14,16 @@ These are for the general case, specific version for each municipality
 is typically a better solution.
 """
 import time
+
 import click
-from os2mo_helpers.mora_helpers import MoraHelper
 import common_queries as cq
+from os2mo_helpers.mora_helpers import MoraHelper
 
 
 @click.command()
-@click.option('--root', default=None, help='uuid of the root to be exported')
-@click.option('--threaded-speedup', default=False, help='Run in multithreaded mode')
-@click.option('--hostname', default='localhost', help='MO hostname')
+@click.option("--root", default=None, help="uuid of the root to be exported")
+@click.option("--threaded-speedup", default=False, help="Run in multithreaded mode")
+@click.option("--hostname", default="localhost", help="MO hostname")
 def export_from_mo(root, threaded_speedup, hostname):
     threaded_speedup = threaded_speedup
     t = time.time()
@@ -36,40 +37,40 @@ def export_from_mo(root, threaded_speedup, hostname):
         trees = {}
         max_height = 0
         for root in roots:
-            name = root['name']
-            uuid = root['uuid']
+            name = root["name"]
+            uuid = root["uuid"]
             trees[name] = mh.read_ou_tree(uuid)
-            if trees[name]['root'].height > max_height:
+            if trees[name]["root"].height > max_height:
                 main_root = name
             nodes = trees[main_root]
     else:
         nodes = mh.read_ou_tree(root)
-    print('Find main tree: {}'.format(time.time() - t))
+    print("Find main tree: {}".format(time.time() - t))
 
     if threaded_speedup:
         cq.pre_cache_users(mh)
-        print('Build cache: {}'.format(time.time() - t))
+        print("Build cache: {}".format(time.time() - t))
 
-    filename = 'alle_lederfunktioner_os2mo.csv'
+    filename = "alle_lederfunktioner_os2mo.csv"
     cq.export_managers(mh, nodes, filename)
-    print('Alle ledere: {}s'.format(time.time() - t))
+    print("Alle ledere: {}s".format(time.time() - t))
 
-    filename = 'alle-medarbejdere-stilling-email_os2mo.csv'
+    filename = "alle-medarbejdere-stilling-email_os2mo.csv"
     cq.export_all_employees(mh, nodes, filename)
-    print('alle-medarbejdere-stilling-email_os2mo.csv: {}s'.format(time.time() - t))
+    print("alle-medarbejdere-stilling-email_os2mo.csv: {}s".format(time.time() - t))
 
-    filename = 'org_incl-medarbejdere.csv'
+    filename = "org_incl-medarbejdere.csv"
     cq.export_orgs(mh, nodes, filename)
-    print('org_incl-medarbejdere.csv: {}s'.format(time.time() - t))
+    print("org_incl-medarbejdere.csv: {}s".format(time.time() - t))
 
-    filename = 'adm-org-incl-start-og-stopdata-og-enhedstyper-os2mo.csv'
+    filename = "adm-org-incl-start-og-stopdata-og-enhedstyper-os2mo.csv"
     cq.export_adm_org(mh, nodes, filename)
-    print('adm-org-incl-start-stop: {}s'.format(time.time() - t))
+    print("adm-org-incl-start-stop: {}s".format(time.time() - t))
 
-    filename = 'tilknytninger.csv'
+    filename = "tilknytninger.csv"
     cq.export_all_teams(mh, nodes, filename)
-    print('tilknytninger: {}s'.format(time.time() - t))
+    print("tilknytninger: {}s".format(time.time() - t))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     export_from_mo()

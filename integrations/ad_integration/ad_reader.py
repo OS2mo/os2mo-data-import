@@ -1,12 +1,12 @@
-import time
-import random
 import logging
-from winrm import Session
+import random
+import time
 
 from tqdm import tqdm
+from winrm import Session
 
-from integrations.ad_integration.ad_common import AD
 from integrations.ad_integration import read_ad_conf_settings
+from integrations.ad_integration.ad_common import AD
 
 logger = logging.getLogger("AdReader")
 
@@ -15,7 +15,6 @@ logger = logging.getLogger("AdReader")
 
 
 class ADParameterReader(AD):
-
     def read_encoding(self):
         """
         Read the character encoding of the Power Shell session.
@@ -31,8 +30,8 @@ class ADParameterReader(AD):
 
     def first_included(self, settings, users):
         """
-            include: given a list of users, return the first one that is included
-            exclude: given a list of users, return the first one that is not excluded
+        include: given a list of users, return the first one that is included
+        exclude: given a list of users, return the first one that is not excluded
         """
         discrim_field = settings.get("discriminator.field")
 
@@ -49,7 +48,9 @@ class ADParameterReader(AD):
                     value_found = v in user[discrim_field]
                 if settings["discriminator.function"] == "include" and value_found:
                     included.append(user)
-                elif settings["discriminator.function"] == "exclude" and not value_found:
+                elif (
+                    settings["discriminator.function"] == "exclude" and not value_found
+                ):
                     included.append(user)
 
         if included:
@@ -68,51 +69,56 @@ class ADParameterReader(AD):
     def uncached_read_user(self, user=None, cpr=None, ria=None):
         # read one or more users using cpr-pattern.
         # if list is passed in ria (read it all) then this is extended
-        # with found users - this way the function replaces the old 
+        # with found users - this way the function replaces the old
         # 'read it all' function, so there is now only one function
         # reading from AD.
         settings = self._get_setting()
 
-        logger.debug('Uncached AD read, user {}, cpr {}'.format(user, cpr))
+        logger.debug("Uncached AD read, user {}, cpr {}".format(user, cpr))
 
         server = None
-        if self.all_settings['primary']['servers']:
-            server = random.choice(self.all_settings['primary']['servers'])
+        if self.all_settings["primary"]["servers"]:
+            server = random.choice(self.all_settings["primary"]["servers"])
         response = self.get_from_ad(user=user, cpr=cpr, server=server)
 
         users_by_cpr = {}
         for user in response:
-            users_by_cpr.setdefault(user[settings['cpr_field']], []).append(user)
+            users_by_cpr.setdefault(user[settings["cpr_field"]], []).append(user)
         try:
             for userlist in users_by_cpr.values():
 
-                current_user = self.first_included(settings,  userlist)
+                current_user = self.first_included(settings, userlist)
 
                 if current_user:
 
-                    cpr = current_user[settings['cpr_field']].replace(
-                        settings['cpr_separator'], '')
+                    cpr = current_user[settings["cpr_field"]].replace(
+                        settings["cpr_separator"], ""
+                    )
 
-                    self.results[current_user['SamAccountName']] = current_user
+                    self.results[current_user["SamAccountName"]] = current_user
 
                     if settings.get("caseless_samname", False):
-                        if current_user['SamAccountName'].lower().startswith(settings['sam_filter'].lower()):
+                        if (
+                            current_user["SamAccountName"]
+                            .lower()
+                            .startswith(settings["sam_filter"].lower())
+                        ):
                             self.results[cpr] = current_user
                     else:
-                        if current_user['SamAccountName'].startswith(settings['sam_filter']):
+                        if current_user["SamAccountName"].startswith(
+                            settings["sam_filter"]
+                        ):
                             self.results[cpr] = current_user
 
                     if ria is not None:
                         ria.append(current_user)
 
-
         except Exception:
-            logger.error('Response from uncached_read_user: {}'.format(response))
+            logger.error("Response from uncached_read_user: {}".format(response))
             raise
 
-
     def cache_all(self, print_progress=False):
-        logger.info('Caching all users')
+        logger.info("Caching all users")
         t = time.time()
         return_value = []
         date_range = range(1, 32)
@@ -120,9 +126,9 @@ class ADParameterReader(AD):
             date_range = tqdm(date_range)
         for i in date_range:
             day = str(i).zfill(2)
-            self.uncached_read_user(cpr='{}*'.format(day), ria=return_value)
+            self.uncached_read_user(cpr="{}*".format(day), ria=return_value)
             logger.debug(len(self.results))
-            logger.debug('Read time: {}'.format(time.time() - t))
+            logger.debug("Read time: {}".format(time.time() - t))
         return return_value
 
     def read_user(self, user=None, cpr=None, cache_only=False):
@@ -135,7 +141,7 @@ class ADParameterReader(AD):
         :param cache_only: Return {} if user is not already cached
         :return: All properties listed in AD for the user.
         """
-        logger.debug('Cached AD read, user {}, cpr {}'.format(user, cpr))
+        logger.debug("Cached AD read, user {}, cpr {}".format(user, cpr))
         if (not cpr) and (not user):
             return
 
@@ -155,21 +161,27 @@ class ADParameterReader(AD):
         # Populate self.results:
         self.uncached_read_user(user=user, cpr=cpr)
 
-        logger.debug('Returned info for {}: {}'.format(
-            dict_key, self.results.get(dict_key, {}))
+        logger.debug(
+            "Returned info for {}: {}".format(dict_key, self.results.get(dict_key, {}))
         )
         return self.results.get(dict_key, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ad_reader = ADParameterReader()
-    #import pickle
-    #with open("mypickle.p","bw") as f:
+    # import pickle
+    # with open("mypickle.p","bw") as f:
     #    f.write(pickle.dumps(ad_reader.read_it_all()))
     everything = ad_reader.read_it_all()
     for user in everything:
-        print('Name: {}, Sam: {}, Manager: {} CPR: {}'.format(
-            user['Name'], user['SamAccountName'], user.get('Manager'), "cpr: " + str(user.get('xAttrCPR'))))
-        if user['SamAccountName'] == 'johndoe':
+        print(
+            "Name: {}, Sam: {}, Manager: {} CPR: {}".format(
+                user["Name"],
+                user["SamAccountName"],
+                user.get("Manager"),
+                "cpr: " + str(user.get("xAttrCPR")),
+            )
+        )
+        if user["SamAccountName"] == "johndoe":
             for key in sorted(user.keys()):
-                print('{}: {}'.format(key, user[key]))
+                print("{}: {}".format(key, user[key]))

@@ -5,21 +5,12 @@ import xlsxwriter
 from openpyxl import load_workbook
 from sqlalchemy import create_engine
 
-from exporters.sql_export.sql_table_defs import (
-    Adresse,
-    Base,
-    Bruger,
-    Engagement,
-    Enhed,
-    Tilknytning,
-)
-from reports.query_actualstate import (
-    get_engine,
-    list_employees,
-    list_MED_members,
-    sessionmaker,
-    set_of_org_units,
-)
+from exporters.sql_export.sql_table_defs import (Adresse, Base, Bruger,
+                                                 Engagement, Enhed,
+                                                 Tilknytning)
+from reports.query_actualstate import (get_engine, list_employees,
+                                       list_MED_members, sessionmaker,
+                                       set_of_org_units)
 from reports.XLSXExporter import XLSXExporter
 
 

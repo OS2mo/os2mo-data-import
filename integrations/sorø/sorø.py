@@ -1,58 +1,64 @@
+import argparse
 import json
 import pathlib
-import argparse
-
-from os2mo_data_import import ImportHelper
 
 from integrations.ad_integration import ad_reader
-from integrations.opus.opus_helpers import update_employee
-from integrations.opus.opus_helpers import start_opus_diff
-from integrations.opus.opus_helpers import start_opus_import
 from integrations.opus.opus_exceptions import RunDBInitException
+from integrations.opus.opus_helpers import (start_opus_diff, start_opus_import,
+                                            update_employee)
+from os2mo_data_import import ImportHelper
 
-parser = argparse.ArgumentParser(description='Sorø import')
+parser = argparse.ArgumentParser(description="Sorø import")
 group = parser.add_mutually_exclusive_group()
-group.add_argument('--import', action='store_true', help='New import into empty MO')
-group.add_argument('--update', action='store_true', help='Update with next xml file')
-group.add_argument('--update-single-user', nargs=1, metavar='Emmploymentnumber',
-                   help='Update a single user')
-parser.add_argument('--days', nargs=1, type=int, metavar='Days to go back',
-                    help='Number of days in the past to sync single user',
-                    default=[1000])
+group.add_argument("--import", action="store_true", help="New import into empty MO")
+group.add_argument("--update", action="store_true", help="Update with next xml file")
+group.add_argument(
+    "--update-single-user",
+    nargs=1,
+    metavar="Emmploymentnumber",
+    help="Update a single user",
+)
+parser.add_argument(
+    "--days",
+    nargs=1,
+    type=int,
+    metavar="Days to go back",
+    help="Number of days in the past to sync single user",
+    default=[1000],
+)
 
 args = vars(parser.parse_args())
 
-cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
+cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
 if not cfg_file.is_file():
-    raise Exception('No setting file')
+    raise Exception("No setting file")
 SETTINGS = json.loads(cfg_file.read_text())
 
 ad_reader = ad_reader.ADParameterReader()
 
-if args['update']:
+if args["update"]:
     try:
         start_opus_diff(ad_reader=ad_reader)
     except RunDBInitException:
-        print('RunDB not initialized')
-    
-if args['import']:
+        print("RunDB not initialized")
+
+if args["import"]:
     importer = ImportHelper(
         create_defaults=True,
-        mox_base=SETTINGS['mox.base'],
-        mora_base=SETTINGS['mora.base'],
+        mox_base=SETTINGS["mox.base"],
+        mora_base=SETTINGS["mora.base"],
         store_integration_data=False,
         seperate_names=True,
-        demand_consistent_uuids=False
+        demand_consistent_uuids=False,
     )
 
-
-    med_name = 'MED Organisation'
+    med_name = "MED Organisation"
     importer.add_klasse(
         identifier=med_name,
-        facet_type_ref='org_unit_type',
+        facet_type_ref="org_unit_type",
         user_key=med_name,
-        scope='TEXT',
-        title=med_name
+        scope="TEXT",
+        title=med_name,
     )
 
     importer.add_organisation_unit(
@@ -60,17 +66,17 @@ if args['import']:
         name=med_name,
         user_key=med_name,
         type_ref=med_name,
-        date_from='1930-01-01',
+        date_from="1930-01-01",
         date_to=None,
-        parent_ref=None
+        parent_ref=None,
     )
 
     try:
         start_opus_import(importer, ad_reader=ad_reader, force=True)
     except RunDBInitException:
-        print('RunDB not initialized')
+        print("RunDB not initialized")
 
-if args.get('update_single_user'):
-    employment_number = args.get('update_single_user')[0]
-    days = args['days'][0]
+if args.get("update_single_user"):
+    employment_number = args.get("update_single_user")[0]
+    days = args["days"][0]
     update_employee(employment_number, days)

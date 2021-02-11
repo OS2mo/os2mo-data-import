@@ -1,9 +1,12 @@
-import pickle
 import pathlib
+import pickle
+
 import requests
 
-def _dawa_request(street_name, postal_code, adgangsadresse=False,
-                  skip_letters=False, add_letter=False):
+
+def _dawa_request(
+    street_name, postal_code, adgangsadresse=False, skip_letters=False, add_letter=False
+):
     """
     Heper function to perform a request to DAWA and return the json object.
     :param streetname: Address street name.
@@ -13,28 +16,27 @@ def _dawa_request(street_name, postal_code, adgangsadresse=False,
     :return: The DAWA json object as a dictionary.
     """
     if adgangsadresse:
-        base = 'https://dawa.aws.dk/adgangsadresser?'
+        base = "https://dawa.aws.dk/adgangsadresser?"
     else:
-        base = 'https://dawa.aws.dk/adresser?strukur=mini'
-    params = '&postnr={}&q={}'
+        base = "https://dawa.aws.dk/adresser?strukur=mini"
+    params = "&postnr={}&q={}"
 
-    last_is_letter = (street_name[-1].isalpha() and
-                      (not street_name[-2].isalpha()))
-    if (skip_letters and last_is_letter):
+    last_is_letter = street_name[-1].isalpha() and (not street_name[-2].isalpha())
+    if skip_letters and last_is_letter:
         street_name = street_name[:-1]
     full_url = base + params.format(postal_code, street_name)
-    path_url = full_url.replace('/', '_')
+    path_url = full_url.replace("/", "_")
 
-    cache_dir = pathlib.Path('tmp/')
+    cache_dir = pathlib.Path("tmp/")
     if not cache_dir.is_dir():
-        raise Exception('Folder for temporary files does not exist')
-    
+        raise Exception("Folder for temporary files does not exist")
+
     try:
-        with open('tmp/' + path_url + '.p', 'rb') as f:
+        with open("tmp/" + path_url + ".p", "rb") as f:
             response = pickle.load(f)
     except FileNotFoundError:
         response = requests.get(full_url)
-        with open('tmp/' + path_url + '.p', 'wb') as f:
+        with open("tmp/" + path_url + ".p", "wb") as f:
             pickle.dump(response, f, pickle.HIGHEST_PROTOCOL)
 
     dar_data = response.json()
@@ -55,19 +57,20 @@ def dawa_lookup(street_name, postal_code):
     if len(dar_data) == 0:
         # Found no hits, first attempt is to remove the letter
         # from the address
-        dar_data = _dawa_request(street_name, postal_code, skip_letters=True,
-                                 adgangsadresse=True)
+        dar_data = _dawa_request(
+            street_name, postal_code, skip_letters=True, adgangsadresse=True
+        )
         if len(dar_data) == 1:
-            dar_uuid = dar_data[0]['id']
+            dar_uuid = dar_data[0]["id"]
 
     elif len(dar_data) == 1:
-        dar_uuid = dar_data[0]['id']
+        dar_uuid = dar_data[0]["id"]
 
     else:
         # Multiple results typically means we have found an
         # adgangsadresse
         dar_data = _dawa_request(street_name, postal_code, adgangsadresse=True)
         if len(dar_data) == 1:
-            dar_uuid = dar_data[0]['id']
+            dar_uuid = dar_data[0]["id"]
 
     return dar_uuid

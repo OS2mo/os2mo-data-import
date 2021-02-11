@@ -2,7 +2,8 @@ import json
 import logging
 import pathlib
 
-from reports.query_actualstate import list_employees, list_MED_members, run_report
+from reports.query_actualstate import (list_employees, list_MED_members,
+                                       run_report)
 
 LOG_LEVEL = logging.DEBUG
 LOG_FILE = "Frederikshavn_reports.log"

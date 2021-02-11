@@ -6,13 +6,13 @@ from random import choice, randint
 from unittest import TestCase
 
 import requests
-from integrations.ad_integration.read_ad_conf_settings import read_settings
-
 from ad_sync import AdMoSync
 from ad_writer import ADWriter
 from tests.name_simulator import create_name
 from user_names import CreateUserNames
 from utils import AttrDict, recursive_dict_update
+
+from integrations.ad_integration.read_ad_conf_settings import read_settings
 
 
 class MOTestMixin(object):
@@ -254,8 +254,7 @@ class TestADMixin(object):
                     "full_name": " ".join(default_person["name"]),
                     "sam_account_name": sam_account_name,
                     "manager_sam": default_person["manager_name"][0],
-                    "manager_email": default_person["manager_name"][0]
-                    + "@magenta.dk",
+                    "manager_email": default_person["manager_name"][0] + "@magenta.dk",
                 }
             )
             # Add static fields
@@ -336,8 +335,7 @@ class TestADMixin(object):
             "ObjectClass": "user",
             "SamAccountName": person["sam_account_name"],
             "GivenName": person["name"][-1:],
-            "UserPrincipalName": "_".join(person["full_name"]).lower()
-            + "@magenta.dk",
+            "UserPrincipalName": "_".join(person["full_name"]).lower() + "@magenta.dk",
             "extensionAttribute1": person["cpr"],
             "AddedProperties": [],
             "ModifiedProperties": [],
@@ -430,9 +428,7 @@ class AdMoSyncTestSubclass(AdMoSync):
 
         def _mo_post(url, payload, force=True):
             # Register the call, so we can test against it
-            self.mo_post_calls.append(
-                {"url": url, "payload": payload, "force": force}
-            )
+            self.mo_post_calls.append({"url": url, "payload": payload, "force": force})
             # response.text --> "OK"
             return AttrDict({"text": "OK", "raise_for_status": lambda: None})
 
@@ -500,9 +496,7 @@ class TestADMoSyncMixin(TestADMixin):
         if transform_settings:
             self.settings = self._prepare_settings(transform_settings)
         if transform_mo_values:
-            self.mo_values_func = partial(
-                self._prepare_mo_values, transform_mo_values
-            )
+            self.mo_values_func = partial(self._prepare_mo_values, transform_mo_values)
         if transform_ad_values:
             self.ad_values_func = partial(
                 self._prepare_get_from_ad, transform_ad_values

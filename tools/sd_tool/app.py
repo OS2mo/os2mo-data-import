@@ -1,10 +1,10 @@
+import logging
 import os
+import subprocess
+from uuid import UUID
 
 import flask
-import logging
-import subprocess
 import toml
-from uuid import UUID
 
 app = flask.Flask(__name__)
 
@@ -28,7 +28,8 @@ def index():
 
     try:
         result = subprocess.run(
-            script, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            script, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
         result.check_returncode()
     except OSError as e:
         logger.exception("Script error occurred")

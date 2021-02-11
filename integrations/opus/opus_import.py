@@ -1,53 +1,65 @@
 # -- coding: utf-8 --
 import json
-import pathlib
 import logging
-import xmltodict
+import pathlib
 
+import xmltodict
+from os2mo_helpers.mora_helpers import MoraHelper
 from requests import Session
+
 from integrations import dawa_helper
 from integrations.opus import opus_helpers
-from os2mo_helpers.mora_helpers import MoraHelper
 from integrations.opus.opus_exceptions import UnknownOpusAction
 
 LOG_LEVEL = logging.DEBUG
-LOG_FILE = 'mo_integrations.log'
+LOG_FILE = "mo_integrations.log"
 
 logger = logging.getLogger("opusImport")
 
 for name in logging.root.manager.loggerDict:
-    if name in ('opusImport', 'opusHelper', 'moImporterMoraTypes',
-                'moImporterMoxTypes', 'moImporterUtilities', 'moImporterHelpers',
-                'ADReader'):
+    if name in (
+        "opusImport",
+        "opusHelper",
+        "moImporterMoraTypes",
+        "moImporterMoxTypes",
+        "moImporterUtilities",
+        "moImporterHelpers",
+        "ADReader",
+    ):
         logging.getLogger(name).setLevel(LOG_LEVEL)
     else:
         logging.getLogger(name).setLevel(logging.ERROR)
 
 logging.basicConfig(
-    format='%(levelname)s %(asctime)s %(name)s %(message)s',
+    format="%(levelname)s %(asctime)s %(name)s %(message)s",
     level=LOG_LEVEL,
-    filename=LOG_FILE
+    filename=LOG_FILE,
 )
 
 
 class OpusImport(object):
-
-    def __init__(self, importer, org_name, xml_data, ad_reader=None,
-                 import_first=False, employee_mapping={}):
+    def __init__(
+        self,
+        importer,
+        org_name,
+        xml_data,
+        ad_reader=None,
+        import_first=False,
+        employee_mapping={},
+    ):
         """ If import first is False, the first unit will be skipped """
         self.org_uuid = None
 
-        cfg_file = pathlib.Path.cwd() / 'settings' / 'settings.json'
+        cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
         if not cfg_file.is_file():
-            raise Exception('No setting file')
+            raise Exception("No setting file")
         self.settings = json.loads(cfg_file.read_text())
-        self.filter_ids = self.settings.get('integrations.opus.units.filter_ids', []),
+        self.filter_ids = (self.settings.get("integrations.opus.units.filter_ids", []),)
 
         self.importer = importer
         self.import_first = import_first
         self.session = Session()
-        self.helper = MoraHelper(hostname=self.settings['mora.base'],
-                                 use_cache=False)
+        self.helper = MoraHelper(hostname=self.settings["mora.base"], use_cache=False)
 
         self.organisation_id = None
         self.units = None
@@ -57,63 +69,54 @@ class OpusImport(object):
 
         self.org_name = org_name
         self.importer.add_organisation(
-            identifier=org_name,
-            user_key=org_name,
-            municipality_code=municipality_code
+            identifier=org_name, user_key=org_name, municipality_code=municipality_code
         )
 
-        importer.new_itsystem(
-            identifier='Opus',
-            system_name='Opus'
-        )
+        importer.new_itsystem(identifier="Opus", system_name="Opus")
 
         self.ad_people = {}
         self.employee_forced_uuids = employee_mapping
         self.ad_reader = None
         if ad_reader:
             self.ad_reader = ad_reader
-            self.importer.new_itsystem(
-                identifier='AD',
-                system_name='Active Directory'
-            )
+            self.importer.new_itsystem(identifier="AD", system_name="Active Directory")
             self.ad_reader.cache_all()
 
         self.employee_addresses = {}
-        self._add_klasse('AddressPostUnit', 'Postadresse',
-                         'org_unit_address_type', 'DAR')
-        self._add_klasse('Pnummer', 'Pnummer',
-                         'org_unit_address_type', 'PNUMBER')
-        self._add_klasse('EAN', 'EAN', 'org_unit_address_type', 'EAN')
-        self._add_klasse('PhoneUnit', 'Telefon', 'org_unit_address_type', 'PHONE')
-        self._add_klasse('PhoneEmployee', 'Telefon', 'employee_address_type',
-                         'PHONE')
-        self._add_klasse('EmailEmployee', 'Email',
-                         'employee_address_type', 'EMAIL')
-        self._add_klasse('CVR', 'CVR', 'org_unit_address_type')
-        self._add_klasse('SE', 'SE', 'org_unit_address_type')
-        self._add_klasse('AdressePostEmployee', 'Postadresse',
-                         'employee_address_type', 'DAR')
-        self._add_klasse('Lederansvar', 'Lederansvar', 'responsibility')
-        self._add_klasse('Ekstern', 'Må vises eksternt', 'visibility', 'PUBLIC')
-        self._add_klasse('Intern', 'Må vises internt', 'visibility', 'INTERNAL')
-        self._add_klasse('Hemmelig', 'Hemmelig', 'visibility', 'SECRET')
+        self._add_klasse(
+            "AddressPostUnit", "Postadresse", "org_unit_address_type", "DAR"
+        )
+        self._add_klasse("Pnummer", "Pnummer", "org_unit_address_type", "PNUMBER")
+        self._add_klasse("EAN", "EAN", "org_unit_address_type", "EAN")
+        self._add_klasse("PhoneUnit", "Telefon", "org_unit_address_type", "PHONE")
+        self._add_klasse("PhoneEmployee", "Telefon", "employee_address_type", "PHONE")
+        self._add_klasse("EmailEmployee", "Email", "employee_address_type", "EMAIL")
+        self._add_klasse("CVR", "CVR", "org_unit_address_type")
+        self._add_klasse("SE", "SE", "org_unit_address_type")
+        self._add_klasse(
+            "AdressePostEmployee", "Postadresse", "employee_address_type", "DAR"
+        )
+        self._add_klasse("Lederansvar", "Lederansvar", "responsibility")
+        self._add_klasse("Ekstern", "Må vises eksternt", "visibility", "PUBLIC")
+        self._add_klasse("Intern", "Må vises internt", "visibility", "INTERNAL")
+        self._add_klasse("Hemmelig", "Hemmelig", "visibility", "SECRET")
 
-        self._add_klasse('primary', 'Ansat', 'primary_type', '3000')
-        self._add_klasse('non-primary', 'Ikke-primær ansættelse',
-                         'primary_type', '0')
-        self._add_klasse('explicitly-primary', 'Manuelt primær ansættelse',
-                         'primary_type', '5000')
+        self._add_klasse("primary", "Ansat", "primary_type", "3000")
+        self._add_klasse("non-primary", "Ikke-primær ansættelse", "primary_type", "0")
+        self._add_klasse(
+            "explicitly-primary", "Manuelt primær ansættelse", "primary_type", "5000"
+        )
 
     def _update_ad_map(self, cpr):
-        logger.debug('Update cpr {}'.format(cpr))
+        logger.debug("Update cpr {}".format(cpr))
         self.ad_people[cpr] = {}
         if self.ad_reader:
             response = self.ad_reader.read_user(cpr=cpr, cache_only=True)
             if response:
-                logger.debug('AD response: {}'.format(response))
+                logger.debug("AD response: {}".format(response))
                 self.ad_people[cpr] = response
             else:
-                logger.debug('Not found in AD')
+                logger.debug("Not found in AD")
 
     def insert_org_units(self):
         for unit in self.units:
@@ -123,8 +126,8 @@ class OpusImport(object):
         for employee in self.employees:
             self._import_employee(employee)
 
-    def _add_klasse(self, klasse_id, klasse, facet, scope='TEXT'):
-        if not self.importer.check_if_exists('klasse', klasse_id):
+    def _add_klasse(self, klasse_id, klasse, facet, scope="TEXT"):
+        if not self.importer.check_if_exists("klasse", klasse_id):
             uuid = opus_helpers.generate_uuid(klasse_id)
             self.importer.add_klasse(
                 identifier=klasse_id,
@@ -132,7 +135,7 @@ class OpusImport(object):
                 facet_type_ref=facet,
                 user_key=klasse_id,
                 scope=scope,
-                title=klasse
+                title=klasse,
             )
         return klasse_id
 
@@ -144,47 +147,47 @@ class OpusImport(object):
         """
 
         with open(target_file) as xmldump:
-            data = xmltodict.parse(xmldump.read())['kmd']
+            data = xmltodict.parse(xmldump.read())["kmd"]
 
-        self.organisation_id = data['orgUnit'][0]['@id']
+        self.organisation_id = data["orgUnit"][0]["@id"]
 
         if self.import_first:
-            self.units = data['orgUnit']
+            self.units = data["orgUnit"]
         else:
-            self.units = data['orgUnit'][1:]
+            self.units = data["orgUnit"][1:]
 
         self.units = opus_helpers.filter_units(self.units, self.filter_ids)
 
-        self.employees = data['employee']
+        self.employees = data["employee"]
 
-        municipality_code = int(data['orgUnit'][0]['@client'])
+        municipality_code = int(data["orgUnit"][0]["@client"])
         return municipality_code
 
     def _import_org_unit(self, unit):
         try:
-            org_type = unit['orgType']
-            self._add_klasse(org_type, unit['orgTypeTxt'], 'org_unit_type')
+            org_type = unit["orgType"]
+            self._add_klasse(org_type, unit["orgTypeTxt"], "org_unit_type")
         except KeyError:
-            org_type = 'Enhed'
-            self._add_klasse(org_type, 'Enhed', 'org_unit_type')
+            org_type = "Enhed"
+            self._add_klasse(org_type, "Enhed", "org_unit_type")
 
-        identifier = unit['@id']
+        identifier = unit["@id"]
         uuid = opus_helpers.generate_uuid(identifier)
-        logger.debug('Generated uuid for {}: {}'.format(unit['@id'], uuid))
+        logger.debug("Generated uuid for {}: {}".format(unit["@id"], uuid))
 
-        user_key = unit['shortName']
+        user_key = unit["shortName"]
 
-        if unit['startDate'] == '1900-01-01':
-            date_from = '1930-01-01'
+        if unit["startDate"] == "1900-01-01":
+            date_from = "1930-01-01"
         else:
-            date_from = unit['startDate']
+            date_from = unit["startDate"]
 
-        if unit['endDate'] == '9999-12-31':
+        if unit["endDate"] == "9999-12-31":
             date_to = None
         else:
-            date_to = unit['endDate']
+            date_to = unit["endDate"]
 
-        name = unit['longName']
+        name = unit["longName"]
 
         parent_org = unit.get("parentOrgUnit")
         if parent_org == self.organisation_id and not self.import_first:
@@ -198,95 +201,95 @@ class OpusImport(object):
             parent_ref=parent_org,
             type_ref=org_type,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
         )
 
-        if 'seNr' in unit:
+        if "seNr" in unit:
             self.importer.add_address_type(
                 organisation_unit=identifier,
-                value=unit['seNr'],
-                type_ref='SE',
+                value=unit["seNr"],
+                type_ref="SE",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if 'cvrNr' in unit:
+        if "cvrNr" in unit:
             self.importer.add_address_type(
                 organisation_unit=identifier,
-                value=unit['cvrNr'],
-                type_ref='CVR',
+                value=unit["cvrNr"],
+                type_ref="CVR",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if 'eanNr' in unit and (not unit['eanNr'] == '9999999999999'):
+        if "eanNr" in unit and (not unit["eanNr"] == "9999999999999"):
             self.importer.add_address_type(
                 organisation_unit=identifier,
-                value=unit['eanNr'],
-                type_ref='EAN',
+                value=unit["eanNr"],
+                type_ref="EAN",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if 'pNr' in unit and (not unit['pNr'] == '0000000000'):
+        if "pNr" in unit and (not unit["pNr"] == "0000000000"):
             self.importer.add_address_type(
                 organisation_unit=identifier,
-                value=unit['pNr'],
-                type_ref='Pnummer',
+                value=unit["pNr"],
+                type_ref="Pnummer",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if unit['phoneNumber']:
+        if unit["phoneNumber"]:
             self.importer.add_address_type(
                 organisation_unit=identifier,
-                value=unit['phoneNumber'],
-                type_ref='PhoneUnit',
+                value=unit["phoneNumber"],
+                type_ref="PhoneUnit",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        address_string = unit['street']
-        zip_code = unit['zipCode']
+        address_string = unit["street"]
+        zip_code = unit["zipCode"]
         if address_string and zip_code:
             address_uuid = dawa_helper.dawa_lookup(address_string, zip_code)
             if address_uuid:
                 self.importer.add_address_type(
                     organisation_unit=identifier,
                     value=address_uuid,
-                    type_ref='AddressPostUnit',
+                    type_ref="AddressPostUnit",
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )
 
     def add_addresses_to_employees(self):
         for cpr, employee_addresses in self.employee_addresses.items():
             for facet, address in employee_addresses.items():
-                logger.debug('Add address {}'.format(address))
+                logger.debug("Add address {}".format(address))
                 if address:
                     self.importer.add_address_type(
                         employee=cpr,
                         value=address,
                         type_ref=facet,
-                        date_from='1930-01-01',
-                        date_to=None
+                        date_from="1930-01-01",
+                        date_to=None,
                     )
 
     def _import_employee(self, employee):
         # UNUSED KEYS:
         # '@lastChanged'
 
-        logger.debug('Employee object: {}'.format(employee))
-        if 'cpr' in employee:
-            cpr = employee['cpr']['#text']
-            if employee['firstName'] is None and employee['lastName'] is None:
+        logger.debug("Employee object: {}".format(employee))
+        if "cpr" in employee:
+            cpr = employee["cpr"]["#text"]
+            if employee["firstName"] is None and employee["lastName"] is None:
                 # Service user, skip
-                logger.info('Skipped {}, we think it is a serviceuser'.format(cpr))
+                logger.info("Skipped {}, we think it is a serviceuser".format(cpr))
                 return
 
         else:  # This employee has left the organisation
-            if not employee['@action'] == 'leave':
-                msg = 'Unknown action: {}'.format(employee['@action'])
+            if not employee["@action"] == "leave":
+                msg = "Unknown action: {}".format(employee["@action"])
                 logger.error(msg)
                 raise UnknownOpusAction(msg)
             return
@@ -294,136 +297,136 @@ class OpusImport(object):
         self._update_ad_map(cpr)
 
         uuid = self.employee_forced_uuids.get(cpr)
-        logger.info('Employee in force list: {} {}'.format(cpr, uuid))
-        if uuid is None and 'ObjectGuid' in self.ad_people[cpr]:
-            uuid = self.ad_people[cpr]['ObjectGuid']
+        logger.info("Employee in force list: {} {}".format(cpr, uuid))
+        if uuid is None and "ObjectGuid" in self.ad_people[cpr]:
+            uuid = self.ad_people[cpr]["ObjectGuid"]
 
-        date_from = employee['entryDate']
-        date_to = employee['leaveDate']
+        date_from = employee["entryDate"]
+        date_to = employee["leaveDate"]
         if date_from is None:
-            date_from = '1930-01-01'
+            date_from = "1930-01-01"
 
         # Only add employee and address information once, this info is duplicated
         # if the employee has multiple engagements
-        if not self.importer.check_if_exists('employee', cpr):
+        if not self.importer.check_if_exists("employee", cpr):
             self.employee_addresses[cpr] = {}
             self.importer.add_employee(
                 identifier=cpr,
-                name=(employee['firstName'], employee['lastName']),
+                name=(employee["firstName"], employee["lastName"]),
                 cpr_no=cpr,
-                uuid=uuid
+                uuid=uuid,
             )
 
-        if 'SamAccountName' in self.ad_people[cpr]:
+        if "SamAccountName" in self.ad_people[cpr]:
             self.importer.join_itsystem(
                 employee=cpr,
-                user_key=self.ad_people[cpr]['SamAccountName'],
-                itsystem_ref='AD',
-                date_from='1930-01-01'
+                user_key=self.ad_people[cpr]["SamAccountName"],
+                itsystem_ref="AD",
+                date_from="1930-01-01",
             )
 
-        if 'userId' in employee:
+        if "userId" in employee:
             self.importer.join_itsystem(
                 employee=cpr,
-                user_key=employee['userId'],
-                itsystem_ref='Opus',
+                user_key=employee["userId"],
+                itsystem_ref="Opus",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if 'email' in employee:
-            self.employee_addresses[cpr]['EmailEmployee'] = employee['email']
-        if employee['workPhone'] is not None:
-            phone = opus_helpers.parse_phone(employee['workPhone'])
-            self.employee_addresses[cpr]['PhoneEmployee'] = phone
+        if "email" in employee:
+            self.employee_addresses[cpr]["EmailEmployee"] = employee["email"]
+        if employee["workPhone"] is not None:
+            phone = opus_helpers.parse_phone(employee["workPhone"])
+            self.employee_addresses[cpr]["PhoneEmployee"] = phone
 
-        if 'postalCode' in employee and employee['address']:
-            if isinstance(employee['address'], dict):
+        if "postalCode" in employee and employee["address"]:
+            if isinstance(employee["address"], dict):
                 # This is a protected address, cannot import
                 pass
             else:
-                address_string = employee['address']
+                address_string = employee["address"]
                 zip_code = employee["postalCode"]
                 addr_uuid = dawa_helper.dawa_lookup(address_string, zip_code)
                 if addr_uuid:
-                    self.employee_addresses[cpr]['AdressePostEmployee'] = addr_uuid
+                    self.employee_addresses[cpr]["AdressePostEmployee"] = addr_uuid
 
         job = employee["position"]
-        self._add_klasse(job, job, 'engagement_job_function')
+        self._add_klasse(job, job, "engagement_job_function")
 
-        if 'workContractText' in employee:
-            contract = employee['workContractText']
+        if "workContractText" in employee:
+            contract = employee["workContractText"]
         else:
-            contract = 'Ansat'
-        self._add_klasse(contract, contract, 'engagement_type')
+            contract = "Ansat"
+        self._add_klasse(contract, contract, "engagement_type")
 
-        org_unit = employee['orgUnit']
-        job_id = employee['@id']
+        org_unit = employee["orgUnit"]
+        job_id = employee["@id"]
         # engagement_uuid = opus_helpers.generate_uuid(job_id)
 
         # Every engagement is initially imported as non-primary,
         # a seperate script will correct this after import.
         # This allows separate rules for primary calculation.
-        logger.info('Add engagement: {} to {}'.format(job_id, cpr))
+        logger.info("Add engagement: {} to {}".format(job_id, cpr))
         self.importer.add_engagement(
             employee=cpr,
             # uuid=str(engagement_uuid),
             organisation_unit=org_unit,
-            primary_ref='non-primary',
+            primary_ref="non-primary",
             user_key=job_id,
             job_function_ref=job,
             engagement_type_ref=contract,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
         )
 
-        if employee['isManager'] == 'true':
-            manager_type_ref = 'manager_type_' + job
-            self._add_klasse(manager_type_ref, job, 'manager_type')
+        if employee["isManager"] == "true":
+            manager_type_ref = "manager_type_" + job
+            self._add_klasse(manager_type_ref, job, "manager_type")
 
             # Opus has two levels of manager_level, since MO handles only one
             # they are concatenated into one.
-            manager_level = '{}.{}'.format(employee['superiorLevel'],
-                                           employee['subordinateLevel'])
-            self._add_klasse(manager_level, manager_level, 'manager_level')
-            logger.info('{} is manager {}'.format(cpr, manager_level))
+            manager_level = "{}.{}".format(
+                employee["superiorLevel"], employee["subordinateLevel"]
+            )
+            self._add_klasse(manager_level, manager_level, "manager_level")
+            logger.info("{} is manager {}".format(cpr, manager_level))
             self.importer.add_manager(
                 employee=cpr,
                 user_key=job_id,
                 organisation_unit=org_unit,
                 manager_level_ref=manager_level,
                 manager_type_ref=manager_type_ref,
-                responsibility_list=['Lederansvar'],
+                responsibility_list=["Lederansvar"],
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-        if 'function' in employee:
-            if not isinstance(employee['function'], list):
-                roles = [employee['function']]
+        if "function" in employee:
+            if not isinstance(employee["function"], list):
+                roles = [employee["function"]]
             else:
-                roles = employee['function']
+                roles = employee["function"]
 
             for role in roles:
-                logger.debug('{} has role {}'.format(cpr, role))
+                logger.debug("{} has role {}".format(cpr, role))
                 # We have only a single class for roles, must combine the information
-                if 'roleText' in role:
-                    combined_role = '{} - {}'.format(role['artText'],
-                                                     role['roleText'])
+                if "roleText" in role:
+                    combined_role = "{} - {}".format(role["artText"], role["roleText"])
                 else:
-                    combined_role = role['artText']
-                self._add_klasse(combined_role, combined_role, 'role_type')
+                    combined_role = role["artText"]
+                self._add_klasse(combined_role, combined_role, "role_type")
 
-                date_from = role['@startDate']
-                if role['@endDate'] == '9999-12-31':
+                date_from = role["@startDate"]
+                if role["@endDate"] == "9999-12-31":
                     date_to = None
                 else:
-                    date_to = role['@endDate']
+                    date_to = role["@endDate"]
 
                 self.importer.add_role(
                     employee=cpr,
                     organisation_unit=org_unit,
                     role_type_ref=combined_role,
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )

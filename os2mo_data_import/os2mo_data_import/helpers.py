@@ -6,33 +6,23 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 import logging
+
+from integration_abstraction.integration_abstraction import \
+    IntegrationAbstraction
 from os2mo_helpers.mora_helpers import MoraHelper
-from integration_abstraction.integration_abstraction import IntegrationAbstraction
 
-from os2mo_data_import.utilities import ImportUtility
 from os2mo_data_import.defaults import facet_defaults
-from os2mo_data_import.mora_data_types import (
-    mora_type_config,
-    AddressType,
-    EngagementType,
-    AssociationType,
-    RoleType,
-    ManagerType,
-    LeaveType,
-    ItsystemType,
-    OrganisationUnitType,
-    EmployeeType,
-    TerminationType,
-    EngagementTerminationType
-)
-
-from os2mo_data_import.mox_data_types import (
-    Organisation,
-    Klassifikation,
-    Facet,
-    Klasse,
-    Itsystem
-)
+from os2mo_data_import.mora_data_types import (AddressType, AssociationType,
+                                               EmployeeType,
+                                               EngagementTerminationType,
+                                               EngagementType, ItsystemType,
+                                               LeaveType, ManagerType,
+                                               OrganisationUnitType, RoleType,
+                                               TerminationType,
+                                               mora_type_config)
+from os2mo_data_import.mox_data_types import (Facet, Itsystem, Klasse,
+                                              Klassifikation, Organisation)
+from os2mo_data_import.utilities import ImportUtility
 
 logger = logging.getLogger("moImporterHelpers")
 
@@ -105,16 +95,23 @@ class ImportHelper(object):
         :class:`os2mo_data_import.utilities.ImportUtility`
     """
 
-    def __init__(self, system_name="Import", end_marker="_|-STOP",
-                 mox_base="http://localhost:8080", mora_base="http://localhost:5000",
-                 store_integration_data=False, create_defaults=True,
-                 seperate_names=False, demand_consistent_uuids=True,
-                 ImportUtility=ImportUtility):
+    def __init__(
+        self,
+        system_name="Import",
+        end_marker="_|-STOP",
+        mox_base="http://localhost:8080",
+        mora_base="http://localhost:5000",
+        store_integration_data=False,
+        create_defaults=True,
+        seperate_names=False,
+        demand_consistent_uuids=True,
+        ImportUtility=ImportUtility,
+    ):
 
         self.seperate_names = seperate_names
-        mora_type_config(mox_base=mox_base,
-                         system_name=system_name,
-                         end_marker=end_marker)
+        mora_type_config(
+            mox_base=mox_base, system_name=system_name, end_marker=end_marker
+        )
         self.mox_base = mox_base
         # Import Utility
         self.store = ImportUtility(
@@ -123,7 +120,7 @@ class ImportHelper(object):
             system_name=system_name,
             end_marker=end_marker,
             demand_consistent_uuids=demand_consistent_uuids,
-            store_integration_data=store_integration_data
+            store_integration_data=store_integration_data,
         )
         # TODO: store_integration_data could be passed to ImportUtility by passing
         # the actual self.ia object
@@ -147,7 +144,7 @@ class ImportHelper(object):
             "klasse": "klasse_objects",
             "facet": "facet_objects",
             "organisation_unit": "organisation_units",
-            "employee": "employees"
+            "employee": "employees",
         }
 
         self.organisation_unit_details = {}
@@ -197,9 +194,7 @@ class ImportHelper(object):
 
         if object_type not in available:
             raise TypeError(
-                "Cannot check for this type, available types: {}".format(
-                    available
-                )
+                "Cannot check for this type, available types: {}".format(available)
             )
 
         object_type = self.available_types.get(object_type)
@@ -256,11 +251,7 @@ class ImportHelper(object):
             details = []
 
         if type_id:
-            details = [
-                detail
-                for detail in details
-                if detail.type_id == type_id
-            ]
+            details = [detail for detail in details if detail.type_id == type_id]
 
         return details
 
@@ -279,10 +270,7 @@ class ImportHelper(object):
         if not date_from or not date_to:
             raise AssertionError("Date is not specified, cannot create validity")
 
-        return {
-            "from": date_from,
-            "to": date_to
-        }
+        return {"from": date_from, "to": date_to}
 
     def add_organisation(self, identifier, **kwargs):
         """
@@ -295,9 +283,7 @@ class ImportHelper(object):
             If name is not set, the identifier is used as the name.
         """
 
-        name = (
-            kwargs.get("name") or identifier
-        )
+        name = kwargs.get("name") or identifier
 
         self.organisation = (
             identifier,
@@ -306,7 +292,7 @@ class ImportHelper(object):
 
         self.klassifikation = (
             identifier,
-            Klassifikation(user_key=name, parent_name=name, description="umbrella")
+            Klassifikation(user_key=name, parent_name=name, description="umbrella"),
         )
 
     def add_klasse(self, identifier, **kwargs):
@@ -319,7 +305,7 @@ class ImportHelper(object):
 
         if identifier in self.klasse_objects:
             raise ReferenceError(
-                'Unique constraint - Klasse identifier {} exists'.format(identifier)
+                "Unique constraint - Klasse identifier {} exists".format(identifier)
             )
 
         if "user_key" not in kwargs:
@@ -368,7 +354,7 @@ class ImportHelper(object):
         if identifier in self.employees:
             raise ReferenceError("Identifier exists")
 
-        kwargs['seperate_names'] = self.seperate_names
+        kwargs["seperate_names"] = self.seperate_names
 
         self.employees[identifier] = EmployeeType(**kwargs)
         self.employee_details[identifier] = []
@@ -383,9 +369,7 @@ class ImportHelper(object):
         """
 
         if not (organisation_unit or employee):
-            raise ReferenceError(
-                "Either organisation unit or employee must be owner"
-            )
+            raise ReferenceError("Either organisation unit or employee must be owner")
 
         if organisation_unit and employee:
             raise ReferenceError(
@@ -397,9 +381,7 @@ class ImportHelper(object):
             if employee not in self.employees:
                 raise ReferenceError("Owner does not exist")
 
-            self.employee_details[employee].append(
-                AddressType(**kwargs)
-            )
+            self.employee_details[employee].append(AddressType(**kwargs))
 
         if organisation_unit:
 
@@ -443,7 +425,7 @@ class ImportHelper(object):
         :param str employee: Reference to the employee
         :param kwargs kwargs: :class:`os2mo_data_import.mora_data_types.TerminationType`
         """
-        termination = TerminationType(kwargs['date_from'])
+        termination = TerminationType(kwargs["date_from"])
 
         self.employee_details[employee].append(termination)
 
@@ -455,7 +437,7 @@ class ImportHelper(object):
         :param str employee: Reference to the employee
         :param kwargs kwargs: :class:`os2mo_data_import.mora_data_types.EngagementTerminationType`
         """
-        termination = EngagementTerminationType(kwargs['engagement_uuid'])
+        termination = EngagementTerminationType(kwargs["engagement_uuid"])
 
         self.employee_details[employee].append(termination)
 
@@ -551,10 +533,7 @@ class ImportHelper(object):
 
         for user_key in facet_defaults:
 
-            self.add_facet(
-                identifier=user_key,
-                user_key=user_key
-            )
+            self.add_facet(identifier=user_key, user_key=user_key)
 
     def import_organisation_units_recursively(self, reference, org_unit):
         """
@@ -579,26 +558,24 @@ class ImportHelper(object):
         details = self.organisation_unit_details.get(reference)
 
         self.store.import_org_unit(
-            reference=reference,
-            organisation_unit=org_unit,
-            details=details
+            reference=reference, organisation_unit=org_unit, details=details
         )
 
     def _import_unit_from_integration_data(self, reference):
-        ou_res = 'organisation/organisationenhed'
-        klasse_res = 'klassifikation/klasse'
+        ou_res = "organisation/organisationenhed"
+        klasse_res = "klassifikation/klasse"
         uuid = self.ia.find_object(ou_res, reference)
         # TODO: Should this include more than just present time?
         unit = self.morah.read_ou(uuid)
 
-        type_uuid = unit['org_unit_type']['uuid']
-        parent = unit['parent']
-        date_from = unit['validity']['from']
-        date_to = unit['validity']['to']
+        type_uuid = unit["org_unit_type"]["uuid"]
+        parent = unit["parent"]
+        date_from = unit["validity"]["from"]
+        date_to = unit["validity"]["to"]
         type_ref = self.ia.read_integration_data(klasse_res, type_uuid)
 
         if parent:
-            parent_uuid = parent['uuid']
+            parent_uuid = parent["uuid"]
             parent_ref = self.ia.read_integration_data(ou_res, parent_uuid)
         else:
             parent_ref = None
@@ -607,9 +584,9 @@ class ImportHelper(object):
             identifier=reference,
             parent_ref=parent_ref,
             type_ref=type_ref,
-            uuid=unit['uuid'],
+            uuid=unit["uuid"],
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
         )
 
     def test_org_unit_refs(self, reference, org_unit):
@@ -626,7 +603,9 @@ class ImportHelper(object):
         if org_unit.parent_ref and (not parent_unit):
             re_run = True
             self._import_unit_from_integration_data(org_unit.parent_ref)
-            logger.info('Importing {} from integration data'.format(org_unit.parent_ref))
+            logger.info(
+                "Importing {} from integration data".format(org_unit.parent_ref)
+            )
         else:
             re_run = False
         return re_run
@@ -670,9 +649,7 @@ class ImportHelper(object):
         for identifier, employee in self.employees.items():
             details = self.employee_details.get(identifier)
             self.store.import_employee(
-                reference=identifier,
-                employee=employee,
-                details=details
+                reference=identifier, employee=employee, details=details
             )
 
     def import_all(self):
@@ -690,29 +667,29 @@ class ImportHelper(object):
         """
 
         # Insert Organisation
-        logger.info('Will now import organisation')
+        logger.info("Will now import organisation")
         self._import_organisation()
 
         # Insert Klassifikation
-        logger.info('Will now import klassifikation')
+        logger.info("Will now import klassifikation")
         self._import_klassifikation()
 
         # Insert Facet
-        logger.info('Will now import facet')
+        logger.info("Will now import facet")
         self._import_facets()
 
         # Insert Klasse
-        logger.info('Will now import klasse')
+        logger.info("Will now import klasse")
         self._import_classes()
 
         # Insert Itsystem
-        logger.info('Will now import IT-systems')
+        logger.info("Will now import IT-systems")
         self._import_itsystems()
 
         # Insert Organisation Units
-        logger.info('Will now import org units')
+        logger.info("Will now import org units")
         self._import_org_units()
 
         # Insert Employees
-        logger.info('Will now import employees')
+        logger.info("Will now import employees")
         self._import_employees()

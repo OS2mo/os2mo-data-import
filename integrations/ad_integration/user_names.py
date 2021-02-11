@@ -1,70 +1,69 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import random
 import argparse
-
-from ad_reader import ADParameterReader
+import random
 
 import username_rules.method_2
+from ad_reader import ADParameterReader
 
-METHOD = 'metode 2'
+METHOD = "metode 2"
 
 CHAR_REPLACEMENT = {
-    'â': 'a',
-    'ä': 'a',
-    'à': 'a',
-    'å': 'a',
-    'Ä': 'a',
-    'Å': 'a',
-    'æ': 'a',
-    'Æ': 'a',
-    'á': 'a',
-    'Á': 'a',
-    'Â': 'a',
-    'À': 'a',
-    'ã': 'a',
-    'Ã': 'a',
-    'é': 'e',
-    'ê': 'e',
-    'ë': 'e',
-    'è': 'e',
-    'É': 'e',
-    'Ê': 'e',
-    'Ë': 'e',
-    'È': 'e',
-    'ï': 'i',
-    'î': 'i',
-    'ì': 'i',
-    'í': 'i',
-    'Î': 'i',
-    'Ï': 'i',
-    'ô': 'o',
-    'ö': 'o',
-    'ò': 'o',
-    'Ö': 'o',
-    'ø': 'o',
-    'Ø': 'o',
-    'ó': 'o',
-    'Ó': 'o',
-    'Ô': 'o',
-    'Ò': 'o',
-    'õ': 'o',
-    'Õ': 'o',
-    'ü': 'u',
-    'û': 'u',
-    'ù': 'u',
-    'Ü': 'u',
-    'ú': 'u',
-    'Ú': 'u',
-    'Û': 'u',
-    'Ù': 'u',
-    'ÿ': 'y',
-    'ý': 'y',
-    'Ý': 'y',
-    'Ç': 'c',
-    'ç': 'c',
-    'ñ': 'n',
-    'Ñ': 'n'
+    "â": "a",
+    "ä": "a",
+    "à": "a",
+    "å": "a",
+    "Ä": "a",
+    "Å": "a",
+    "æ": "a",
+    "Æ": "a",
+    "á": "a",
+    "Á": "a",
+    "Â": "a",
+    "À": "a",
+    "ã": "a",
+    "Ã": "a",
+    "é": "e",
+    "ê": "e",
+    "ë": "e",
+    "è": "e",
+    "É": "e",
+    "Ê": "e",
+    "Ë": "e",
+    "È": "e",
+    "ï": "i",
+    "î": "i",
+    "ì": "i",
+    "í": "i",
+    "Î": "i",
+    "Ï": "i",
+    "ô": "o",
+    "ö": "o",
+    "ò": "o",
+    "Ö": "o",
+    "ø": "o",
+    "Ø": "o",
+    "ó": "o",
+    "Ó": "o",
+    "Ô": "o",
+    "Ò": "o",
+    "õ": "o",
+    "Õ": "o",
+    "ü": "u",
+    "û": "u",
+    "ù": "u",
+    "Ü": "u",
+    "ú": "u",
+    "Ú": "u",
+    "Û": "u",
+    "Ù": "u",
+    "ÿ": "y",
+    "ý": "y",
+    "Ý": "y",
+    "Ç": "c",
+    "ç": "c",
+    "ñ": "n",
+    "Ñ": "n",
 }
 
 
@@ -76,8 +75,8 @@ def _name_fixer(name):
 
         # Remove all remaining charecters outside a-z
         for char in name[i].lower():
-            if ord(char) not in range(ord('a'), ord('z') + 1):
-                name[i] = name[i].replace(char, '')
+            if ord(char) not in range(ord("a"), ord("z") + 1):
+                name[i] = name[i].replace(char, "")
     return name
 
 
@@ -86,6 +85,7 @@ class CreateUserNames(object):
     An implementation of metode 2 in the AD MOX specification document
     (Bilag: Tildeling af brugernavne).
     """
+
     def __init__(self, occupied_names: set):
         self.method = METHOD
         self.occupied_names = occupied_names
@@ -95,7 +95,7 @@ class CreateUserNames(object):
             username_rules.method_2.THIRD,
             username_rules.method_2.FOURTH,
             username_rules.method_2.FITFTH,
-            username_rules.method_2.SIXTH
+            username_rules.method_2.SIXTH,
         ]
 
     def _create_from_combi(self, name, combi):
@@ -113,11 +113,11 @@ class CreateUserNames(object):
             relevant_name = code[0]
             username = name[relevant_name][0].lower()
         else:
-            username = 'X'
+            username = "X"
 
         current_char = 0
         for i in range(1, len(code)):
-            if code[i] == code[i-1]:
+            if code[i] == code[i - 1]:
                 current_char += 1
             else:
                 current_char = 0
@@ -129,7 +129,7 @@ class CreateUserNames(object):
                     break
                 username += name[relevant_name][current_char].lower()
             else:
-                username += 'X'
+                username += "X"
         return username
 
     def populate_occupied_names(self, **kwargs):
@@ -140,7 +140,7 @@ class CreateUserNames(object):
         reader = ADParameterReader(**kwargs)
         all_users = reader.read_it_all()
         for user in all_users:
-            self.occupied_names.add(user['SamAccountName'])
+            self.occupied_names.add(user["SamAccountName"])
         del reader
         return len(all_users)
 
@@ -170,13 +170,13 @@ class CreateUserNames(object):
         element is the prioritazion level (1-6) and second element being the actual
         rule that ended up suceeding. Lower numbers means better usernames.
         """
-        final_user_name = ''
+        final_user_name = ""
         quality = (0, 0)
         name = _name_fixer(name)
 
         for permutation_counter in range(2, 10):
             for prioritation in range(0, 6):
-                if final_user_name != '':
+                if final_user_name != "":
                     break
                 i = 0
                 for combi in self.combinations[prioritation]:
@@ -185,8 +185,7 @@ class CreateUserNames(object):
                     if not username:
                         continue
 
-                    indexed_username = username.replace('X',
-                                                        str(permutation_counter))
+                    indexed_username = username.replace("X", str(permutation_counter))
                     if indexed_username not in self.occupied_names:
                         if not dry_run:
                             self.occupied_names.add(indexed_username)
@@ -195,7 +194,7 @@ class CreateUserNames(object):
                         return final_user_name, quality
 
         # If we get to here, we completely failed to make a username
-        raise RuntimeError('Failed to create user name')
+        raise RuntimeError("Failed to create user name")
 
     def _metode_3(self, name=[], dry_run=False) -> tuple:
         """
@@ -206,28 +205,27 @@ class CreateUserNames(object):
         :return: A tuple with first element being the username, and second
         element being the tuple (0,0)
         """
-        username = ''
-        while username == '':
+        username = ""
+        while username == "":
             for _ in range(0, 6):
                 username += chr(random.randrange(97, 123))
             if username in self.occupied_names:
-                username = ''
+                username = ""
             else:
                 if not dry_run:
                     self.occupied_names.add(username)
         return (username, (0, 0, 0))
 
     def create_username(self, name: list, dry_run=False) -> tuple:
-        if self.method == 'metode 2':
+        if self.method == "metode 2":
             return self._metode_2(name, dry_run)
-        if self.method == 'metode 3':
+        if self.method == "metode 3":
             return self._metode_3(name, dry_run)
 
     def stats(self, names, size=None, find_quality=None):
         if size is not None:
             difficult_names = set()
-            quality_dist = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0,
-                            'broken': 0}
+            quality_dist = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, "broken": 0}
             for i in range(0, size):
                 name = names[i]
                 try:
@@ -235,9 +233,9 @@ class CreateUserNames(object):
                     quality_dist[quality[1][2]] += 1
                 except RuntimeError:
                     difficult_names.add(str(name))
-                    quality_dist['broken'] += 1
+                    quality_dist["broken"] += 1
             # print(difficult_names)
-            print('Size: {}, qualiy: {}'.format(size, quality_dist))
+            print("Size: {}, qualiy: {}".format(size, quality_dist))
 
         if find_quality is not None:
             user_count = 1
@@ -251,40 +249,43 @@ class CreateUserNames(object):
                     hits = 100000000
                 name = names[user_count]
                 user_name = self.create_username(name)
-                print('Count: {}, User name {}, hits: {}'.format(user_count,
-                                                                 user_name,
-                                                                 hits))
+                print(
+                    "Count: {}, User name {}, hits: {}".format(
+                        user_count, user_name, hits
+                    )
+                )
                 user_count += 1
             print(user_count)
-            print('------')
+            print("------")
 
     def _cli(self):
-        parser = argparse.ArgumentParser(description='User name creator')
-        parser.add_argument('--method', nargs=1, metavar='method',
-                            help='User name method (2 or 3)')
-        parser.add_argument('-N', nargs=1, type=int, help='Number of usernames')
-        parser.add_argument('--name', nargs=1, metavar='name', help='Name of user')
+        parser = argparse.ArgumentParser(description="User name creator")
+        parser.add_argument(
+            "--method", nargs=1, metavar="method", help="User name method (2 or 3)"
+        )
+        parser.add_argument("-N", nargs=1, type=int, help="Number of usernames")
+        parser.add_argument("--name", nargs=1, metavar="name", help="Name of user")
 
         args = vars(parser.parse_args())
 
-        name = args.get('name')[0].split(' ')
+        name = args.get("name")[0].split(" ")
 
-        if args.get('method')[0] == '2':
-            self.method = 'metode 2'
-        elif args.get('method')[0] == '3':
-            self.method = 'metode 3'
+        if args.get("method")[0] == "2":
+            self.method = "metode 2"
+        elif args.get("method")[0] == "3":
+            self.method = "metode 3"
         else:
-            exit('No valid method given')
+            exit("No valid method given")
 
-        for i in range(0, args.get('N')[0]):
+        for i in range(0, args.get("N")[0]):
             print(self.create_username(name))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     name_creator = CreateUserNames(occupied_names=set())
     # name_creator.populate_occupied_names()
     # name_creator._cli()
-    name = ['Anders', 'Kristian', 'Jens', 'abzæ-{øå', 'Peter', 'Andersen']
+    name = ["Anders", "Kristian", "Jens", "abzæ-{øå", "Peter", "Andersen"]
     print(name_creator.create_username(name))
 
     # import pickle

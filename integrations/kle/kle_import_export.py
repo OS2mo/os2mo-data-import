@@ -1,3 +1,4 @@
+import datetime
 import functools
 import json
 import logging
@@ -6,7 +7,6 @@ import pathlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import Enum
-import datetime
 
 import requests
 from sqlalchemy.orm import sessionmaker
@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from exporters.sql_export.lc_for_jobs_db import get_engine
 from exporters.sql_export.sql_table_defs import KLE
 
-LOG_FILE = 'opgavefordeler.log'
+LOG_FILE = "opgavefordeler.log"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, filename=LOG_FILE)
@@ -372,9 +372,9 @@ class OpgavefordelerImporter(KLEAnnotationIntegration):
         org_unit_map = {}
 
         aspect_map = {
-            'Udførende': Aspects.Udfoerende,
-            'Indsigt': Aspects.Indsigt,
-            'Ansvarlig': Aspects.Ansvarlig,
+            "Udførende": Aspects.Udfoerende,
+            "Indsigt": Aspects.Indsigt,
+            "Ansvarlig": Aspects.Ansvarlig,
         }
 
         for row in mo_kle:

@@ -1,10 +1,13 @@
-import io
-import os
 import datetime
+import io
 import logging
-from spsftp import SpSftp
+import os
+
 from os2mo_helpers.mora_helpers import MoraHelper
-from exporters.emus.viborg_xml_emus import settings, main as generate_file
+from spsftp import SpSftp
+
+from exporters.emus.viborg_xml_emus import main as generate_file
+from exporters.emus.viborg_xml_emus import settings
 
 logger = logging.getLogger("emus-sftp")
 
@@ -16,30 +19,27 @@ SFTP_KEY_PATH = settings["emus.sftp_key_path"]
 SFTP_KEY_PASSPHRASE = settings["emus.sftp_key_passphrase"]
 MUSSKEMA_RECIPIENT = settings["emus.recipient"]
 QUERY_EXPORT_DIR = settings["mora.folder.query_export"]
-EMUS_FILENAME = settings.get("emus.outfile_name", 'emus_filename.xml')
+EMUS_FILENAME = settings.get("emus.outfile_name", "emus_filename.xml")
 
 
 def main():
     logger.info("generating file for transfer")
     generated_file = io.StringIO()
-    generate_file(
-        emus_xml_file=generated_file,
-        mh=MoraHelper(MORA_BASE)
-    )
+    generate_file(emus_xml_file=generated_file, mh=MoraHelper(MORA_BASE))
     logger.info("encoding file for transfer")
     filetosend = io.BytesIO(generated_file.getvalue().encode("utf-8"))
 
-    sp = SpSftp({
-        "user": SFTP_USER,
-        "host": SFTP_HOST,
-        "ssh_key_path": SFTP_KEY_PATH,
-        "ssh_key_passphrase": SFTP_KEY_PASSPHRASE
-    })
+    sp = SpSftp(
+        {
+            "user": SFTP_USER,
+            "host": SFTP_HOST,
+            "ssh_key_path": SFTP_KEY_PATH,
+            "ssh_key_passphrase": SFTP_KEY_PASSPHRASE,
+        }
+    )
 
     sp.connect()
-    filename = datetime.datetime.now().strftime(
-        "%Y%m%d_%H%M%S_os2mo2musskema.xml"
-    )
+    filename = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_os2mo2musskema.xml")
     logger.info("sending %s to %s", filename, MUSSKEMA_RECIPIENT)
     sp.send(filetosend, filename, MUSSKEMA_RECIPIENT)
     sp.disconnect()
@@ -51,5 +51,5 @@ def main():
             f.write(generated_file.getvalue())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

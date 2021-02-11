@@ -2,8 +2,9 @@ import unittest
 from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from integrations.SD_Lon.db_overview import DBOverview
 from parameterized import parameterized
+
+from integrations.SD_Lon.db_overview import DBOverview
 
 
 class Test_db_overview(unittest.TestCase):

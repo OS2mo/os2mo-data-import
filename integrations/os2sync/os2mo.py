@@ -9,8 +9,8 @@ import logging
 
 import requests
 
-from integrations.os2sync import config
 from exporters.utils.priority_by_class import choose_public_address
+from integrations.os2sync import config
 
 settings = config.settings
 logger = logging.getLogger(config.loggername)
@@ -39,21 +39,17 @@ def strip_truncate_and_warn(d, root, length=TRUNCATE_LENGTH):
             if len(v) > length:
                 v = d[k] = v[:length]
                 logger.warning(
-                    "truncating to %d key '%s' for"
-                    " uuid '%s' to value '%s'",
+                    "truncating to %d key '%s' for" " uuid '%s' to value '%s'",
                     length,
                     k,
                     root["Uuid"],
-                    v
+                    v,
                 )
 
 
 def os2mo_url(url):
-    """format url like {BASE}/o/{ORG}/e
-    """
-    url = url.format(
-        BASE=settings["OS2MO_SERVICE_URL"], ORG=settings["OS2MO_ORG_UUID"]
-    )
+    """format url like {BASE}/o/{ORG}/e"""
+    url = url.format(BASE=settings["OS2MO_SERVICE_URL"], ORG=settings["OS2MO_ORG_UUID"])
     return url
 
 
@@ -72,11 +68,7 @@ def has_kle():
     try:
         os2mo_get("{BASE}/o/{ORG}/f/kle_aspect")
         os2mo_get("{BASE}/o/{ORG}/f/kle_number")
-        os2mo_get(
-            "{BASE}/ou/" +
-            settings["OS2MO_TOP_UNIT_UUID"] +
-            "/details/kle"
-        )
+        os2mo_get("{BASE}/ou/" + settings["OS2MO_TOP_UNIT_UUID"] + "/details/kle")
         return True
     except requests.exceptions.HTTPError:
         return False
@@ -85,8 +77,7 @@ def has_kle():
 def user_uuids(**kwargs):
     return [
         e["uuid"]
-        for e in os2mo_get("{BASE}/o/{ORG}/e/", limit=9999999,
-                           **kwargs).json()["items"]
+        for e in os2mo_get("{BASE}/o/{ORG}/e/", limit=9999999, **kwargs).json()["items"]
     ]
 
 
@@ -113,8 +104,7 @@ def addresses_to_user(user, addresses):
 
 
 def engagements_to_user(user, engagements, allowed_unitids):
-    for e in sorted(engagements,
-                    key=lambda e: e["job_function"]["name"] + e["uuid"]):
+    for e in sorted(engagements, key=lambda e: e["job_function"]["name"] + e["uuid"]):
         if e["org_unit"]["uuid"] in allowed_unitids:
             user["Positions"].append(
                 {
@@ -141,7 +131,7 @@ def get_sts_user(uuid, allowed_unitids):
     engagements_to_user(
         sts_user,
         os2mo_get("{BASE}/e/" + uuid + "/details/engagement").json(),
-        allowed_unitids
+        allowed_unitids,
     )
     # show_all_details(uuid,"e")
     strip_truncate_and_warn(sts_user, sts_user)
@@ -151,8 +141,7 @@ def get_sts_user(uuid, allowed_unitids):
 def org_unit_uuids(**kwargs):
     return [
         ou["uuid"]
-        for ou in os2mo_get("{BASE}/o/{ORG}/ou", limit=999999,
-                            **kwargs).json()["items"]
+        for ou in os2mo_get("{BASE}/o/{ORG}/ou", limit=999999, **kwargs).json()["items"]
     ]
 
 
@@ -163,8 +152,8 @@ def itsystems_to_orgunit(orgunit, itsystems):
 
 def address_type_is_contact_hours(address):
     return (
-        address["address_type"]["user_key"] == "ContactOpenHours" and
-        address["address_type"]["scope"] == "TEXT"
+        address["address_type"]["user_key"] == "ContactOpenHours"
+        and address["address_type"]["scope"] == "TEXT"
     )
 
 
@@ -245,13 +234,11 @@ def is_ignored(unit, settings):
     """
 
     return (
-        unit.get("org_unit_level") and unit["org_unit_level"]["uuid"] in settings[
-            "OS2SYNC_IGNORED_UNIT_LEVELS"
-        ]
+        unit.get("org_unit_level")
+        and unit["org_unit_level"]["uuid"] in settings["OS2SYNC_IGNORED_UNIT_LEVELS"]
     ) or (
-        unit.get("org_unit_type") and unit["org_unit_type"]["uuid"] in settings[
-            "OS2SYNC_IGNORED_UNIT_TYPES"
-        ]
+        unit.get("org_unit_type")
+        and unit["org_unit_type"]["uuid"] in settings["OS2SYNC_IGNORED_UNIT_TYPES"]
     )
 
 
@@ -306,8 +293,6 @@ def show_all_details(uuid, objtyp):
         if has_detail:
             print("------------ detail ---- " + d)
             pprint.pprint(
-                os2mo_get(
-                    "{BASE}/" + objtyp + "/" + uuid + "/details/" + d
-                ).json()
+                os2mo_get("{BASE}/" + objtyp + "/" + uuid + "/details/" + d).json()
             )
     print(" ---- end of details ----\n")

@@ -7,9 +7,8 @@ sys.path.append(dirname(__file__) + "/..")
 
 from unittest import TestCase
 
-from parameterized import parameterized
-
 from ad_writer import LoraCacheSource
+from parameterized import parameterized
 from utils import AttrDict
 
 

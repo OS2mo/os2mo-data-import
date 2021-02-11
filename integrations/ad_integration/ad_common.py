@@ -1,13 +1,12 @@
-import time
 import json
-import random
 import logging
+import random
+import time
 
 from winrm import Session
 from winrm.exceptions import WinRMTransportError
 
-from integrations.ad_integration import ad_exceptions
-from integrations.ad_integration import read_ad_conf_settings
+from integrations.ad_integration import ad_exceptions, read_ad_conf_settings
 
 logger = logging.getLogger("AdCommon")
 # Is this universal?
@@ -88,7 +87,9 @@ class AD:
                 self.all_settings["global"]["winrm_host"]
             )
         else:
-            raise ValueError("Unknown WinRM method" + str(self.all_settings["primary"]["method"]))
+            raise ValueError(
+                "Unknown WinRM method" + str(self.all_settings["primary"]["method"])
+            )
         return session
 
     def _run_ps_script(self, ps_script):
@@ -175,9 +176,8 @@ class AD:
         template.
         """
         formatted_script = ps_script.format(**format_rules)
-        finished_ps_script = (
-            self._build_user_credential() +
-            self.remove_redundant(formatted_script)
+        finished_ps_script = self._build_user_credential() + self.remove_redundant(
+            formatted_script
         )
         return finished_ps_script
 
@@ -198,8 +198,9 @@ class AD:
         $UserCredential = New-Object –TypeName $TypeName –ArgumentList $User, $PWord
         """
         settings = self._get_setting()
-        user_credential = credential_template.format(settings['system_user'],
-                                                     settings['password'])
+        user_credential = credential_template.format(
+            settings["system_user"], settings["password"]
+        )
         return user_credential
 
     def _properties(self):
@@ -310,7 +311,7 @@ class AD:
             server_string = " -Server {}".format(server)
         elif self.all_settings["global"].get("servers"):
             server_string = " -Server {}".format(
-            random.choice(self.all_settings["global"]["servers"])
+                random.choice(self.all_settings["global"]["servers"])
             )
 
         command_end = (
@@ -320,11 +321,12 @@ class AD:
         )
 
         ps_script = (
-            self._build_user_credential() +
-            get_command +
-            server_string +
-            bp['complete'] +
-            self._properties() +
+            self._build_user_credential()
+            + get_command
+            + server_string
+            + bp["complete"]
+            + self._properties()
+            +
             # bp['get_ad_object'] +
             command_end
         )

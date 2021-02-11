@@ -12,9 +12,10 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../'))
+
+sys.path.insert(0, os.path.abspath("../../"))
 # sys.path.insert(0, os.path.abspath('../../os2mo_data_import'))
-sys.path.insert(0, os.path.abspath('../../os2mo_data_import/os2mo_helpers'))
+sys.path.insert(0, os.path.abspath("../../os2mo_data_import/os2mo_helpers"))
 
 # At top on conf.py (with other import statements)
 import recommonmark
@@ -22,20 +23,20 @@ from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
-project = 'os2mo-data-import-and-export'
-copyright = '2019, Magenta'
-author = 'Magenta'
-master_doc = 'index'
+project = "os2mo-data-import-and-export"
+copyright = "2019, Magenta"
+author = "Magenta"
+master_doc = "index"
 
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon']
+extensions = ["recommonmark", "sphinx.ext.autodoc", "sphinx.ext.napoleon"]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -50,19 +51,24 @@ exclude_patterns = []
 #
 # html_theme = 'alabaster'
 html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes", ]
+html_theme_path = [
+    "_themes",
+]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
-
+html_static_path = ["_static"]
 
 
 # At the bottom of conf.py
 def setup(app):
-    app.add_config_value('recommonmark_config', {
+    app.add_config_value(
+        "recommonmark_config",
+        {
             #'url_resolver': lambda url: github_doc_root + url,
-            'auto_toc_tree_section': 'Contents',
-            }, False)
+            "auto_toc_tree_section": "Contents",
+        },
+        False,
+    )
     app.add_transform(AutoStructify)

@@ -10,8 +10,8 @@ setup(
     author_email="info@magenta.dk",
     license="MPL 2.0",
     entry_points={
-        'console_scripts': [
-            'mo-populate = fixture_generator.populate_mo:main',
+        "console_scripts": [
+            "mo-populate = fixture_generator.populate_mo:main",
         ],
     },
     packages=[
@@ -37,5 +37,5 @@ setup(
         "requests",
         "xlsxwriter",
         "xmltodict",
-    ]
+    ],
 )

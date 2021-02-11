@@ -47,5 +47,5 @@ facet_defaults = [
     "visibility",
     "time_planning",
     "org_unit_level",
-    "primary_type"
+    "primary_type",
 ]

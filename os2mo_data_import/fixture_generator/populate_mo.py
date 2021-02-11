@@ -1,12 +1,13 @@
-from fixture_generator import dummy_data_creator
 from datetime import datetime
-from click import command, option, ClickException
-from requests import Session
+
 from anytree import PreOrderIter
-from os2mo_data_import import ImportHelper
+from click import ClickException, command, option
+from fixture_generator import dummy_data_creator
 from fixture_generator.dummy_data_creator import Size
 from kle import kle_import
+from requests import Session
 
+from os2mo_data_import import ImportHelper
 
 """
 This tools needs either 2 or 7 arguments:
@@ -29,56 +30,75 @@ http://localhost:5000 http://localhost:80
 
 
 class CreateDummyOrg(object):
-    def __init__(self, importer, municipality_code, name,
-                 scale=1, org_size=Size.Normal, extra_root=True):
-        self.data = self.create_dummy_data(municipality_code, name, scale, org_size,
-                                           predictable_uuids=True)
+    def __init__(
+        self,
+        importer,
+        municipality_code,
+        name,
+        scale=1,
+        org_size=Size.Normal,
+        extra_root=True,
+    ):
+        self.data = self.create_dummy_data(
+            municipality_code, name, scale, org_size, predictable_uuids=True
+        )
 
-        self.extra_data = self.create_dummy_data(municipality_code, name,
-                                                 scale, org_size=Size.Small,
-                                                 root_name='extra_root')
+        self.extra_data = self.create_dummy_data(
+            municipality_code, name, scale, org_size=Size.Small, root_name="extra_root"
+        )
         self.importer = importer
 
         self.importer.add_organisation(
-            identifier=self.data.nodes['root'].name,
-            user_key=self.data.nodes['root'].name,
-            municipality_code=municipality_code
+            identifier=self.data.nodes["root"].name,
+            user_key=self.data.nodes["root"].name,
+            municipality_code=municipality_code,
         )
 
         self.create_classes()
         self.create_it_systems()
 
-        for node in PreOrderIter(self.data.nodes['root']):
-            if node.type == 'ou':
+        for node in PreOrderIter(self.data.nodes["root"]):
+            if node.type == "ou":
                 self.create_ou(node)
-            if node.type == 'user':
+            if node.type == "user":
                 self.create_user(node)
 
         if extra_root:
-            for node in PreOrderIter(self.extra_data.nodes['extra_root']):
-                self.extra_data.nodes['extra_root'].name = 'Lønorganisation'
-                if node.type == 'ou':
+            for node in PreOrderIter(self.extra_data.nodes["extra_root"]):
+                self.extra_data.nodes["extra_root"].name = "Lønorganisation"
+                if node.type == "ou":
                     self.create_ou(node)
 
-                    for org_node in PreOrderIter(self.data.nodes['root']):
-                        if ((org_node.name == node.name) and
-                            ((org_node.parent.name == node.parent.name) or
-                             node.parent.name == 'Lønorganisation')):
+                    for org_node in PreOrderIter(self.data.nodes["root"]):
+                        if (org_node.name == node.name) and (
+                            (org_node.parent.name == node.parent.name)
+                            or node.parent.name == "Lønorganisation"
+                        ):
 
                             for sub_node in org_node.children:
-                                if sub_node.type == 'user':
+                                if sub_node.type == "user":
                                     pass
 
-    def create_dummy_data(self, municipality_code, name, scale, org_size,
-                          predictable_uuids=False, root_name='root'):
+    def create_dummy_data(
+        self,
+        municipality_code,
+        name,
+        scale,
+        org_size,
+        predictable_uuids=False,
+        root_name="root",
+    ):
         name_path = dummy_data_creator._path_to_names()
-        data = dummy_data_creator.CreateDummyOrg(municipality_code,
-                                                 name, name_path, root_name,
-                                                 predictable_uuids=predictable_uuids)
+        data = dummy_data_creator.CreateDummyOrg(
+            municipality_code,
+            name,
+            name_path,
+            root_name,
+            predictable_uuids=predictable_uuids,
+        )
 
         data.create_org_func_tree(org_size=org_size)
-        data.add_users_to_tree(scale,
-                               multiple_employments=org_size == Size.Large)
+        data.add_users_to_tree(scale, multiple_employments=org_size == Size.Large)
         return data
 
     def create_classes(self):
@@ -91,25 +111,22 @@ class CreateDummyOrg(object):
                 else:
                     identifier = klasse
                     title = klasse
-                    scope = 'TEXT'
+                    scope = "TEXT"
 
                 self.importer.add_klasse(
                     identifier=identifier,
                     facet_type_ref=facet,
                     user_key=identifier,
                     title=title,
-                    scope=scope
+                    scope=scope,
                 )
 
     def create_it_systems(self):
         for it_system in self.data.it_systems:
-            self.importer.new_itsystem(
-                identifier=it_system,
-                system_name=it_system
-            )
+            self.importer.new_itsystem(identifier=it_system, system_name=it_system)
 
     def create_ou(self, ou_node):
-        date_from = datetime.strftime(self.data.global_start_date, '%Y-%m-%d')
+        date_from = datetime.strftime(self.data.global_start_date, "%Y-%m-%d")
 
         if ou_node.parent:
             parent = ou_node.parent.key
@@ -122,66 +139,66 @@ class CreateDummyOrg(object):
             org_unit_level_ref=ou_node.unit_level,
             time_planning_ref=ou_node.time_planning,
             parent_ref=parent,
-            type_ref='Afdeling',
+            type_ref="Afdeling",
             date_from=date_from,
-            uuid=ou_node.uuid
+            uuid=ou_node.uuid,
         )
 
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
-            value=ou_node.address['dar-uuid'],
-            type_ref='AddressMailUnit',
-            date_from=date_from
+            value=ou_node.address["dar-uuid"],
+            type_ref="AddressMailUnit",
+            date_from=date_from,
         )
 
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
-            value=ou_node.place_of_contact['dar-uuid'],
-            type_ref='AdresseHenvendelsessted',
-            date_from=date_from
+            value=ou_node.place_of_contact["dar-uuid"],
+            type_ref="AdresseHenvendelsessted",
+            date_from=date_from,
         )
 
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
-            value=ou_node.address['dar-uuid'],
-            type_ref='AdressePostRetur',
-            date_from=date_from
+            value=ou_node.address["dar-uuid"],
+            type_ref="AdressePostRetur",
+            date_from=date_from,
         )
 
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
             value=ou_node.email,
-            type_ref='EmailUnit',
-            date_from=date_from
+            type_ref="EmailUnit",
+            date_from=date_from,
         )
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
             value=ou_node.ean,
-            type_ref='EAN',
-            date_from=date_from
+            type_ref="EAN",
+            date_from=date_from,
         )
 
         self.importer.add_address_type(
             organisation_unit=ou_node.key,
             value=ou_node.p_number,
-            type_ref='p-nummer',
-            date_from=date_from
+            type_ref="p-nummer",
+            date_from=date_from,
         )
 
         if ou_node.location:
             self.importer.add_address_type(
                 organisation_unit=ou_node.key,
                 value=ou_node.location,
-                type_ref='LocationUnit',
-                date_from=date_from
+                type_ref="LocationUnit",
+                date_from=date_from,
             )
 
         if ou_node.url:
             self.importer.add_address_type(
                 organisation_unit=ou_node.key,
                 value=ou_node.url,
-                type_ref='WebUnit',
-                date_from=date_from
+                type_ref="WebUnit",
+                date_from=date_from,
             )
 
         """
@@ -197,147 +214,156 @@ class CreateDummyOrg(object):
 
     def create_user(self, user_node):
         self.importer.add_employee(
-            name=(user_node.user[0]['givenname'], user_node.user[0]['surname']),
-            user_key=user_node.user[0]['brugervendtnoegle'],
-            identifier=user_node.user[0]['brugervendtnoegle'],
-            cpr_no=user_node.user[0]['cpr']
+            name=(user_node.user[0]["givenname"], user_node.user[0]["surname"]),
+            user_key=user_node.user[0]["brugervendtnoegle"],
+            identifier=user_node.user[0]["brugervendtnoegle"],
+            cpr_no=user_node.user[0]["cpr"],
         )
 
         for user in user_node.user:  # All user information is here
-            date_from = datetime.strftime(user['fra'], '%Y-%m-%d')
-            if user['til'] is not None:
-                date_to = datetime.strftime(user['til'], '%Y-%m-%d')
+            date_from = datetime.strftime(user["fra"], "%Y-%m-%d")
+            if user["til"] is not None:
+                date_to = datetime.strftime(user["til"], "%Y-%m-%d")
             else:
                 date_to = None
-            owner_ref = user['brugervendtnoegle']
+            owner_ref = user["brugervendtnoegle"]
 
             self.importer.add_engagement(
                 employee=owner_ref,
                 organisation_unit=user_node.parent.key,
-                job_function_ref=user['job_function'],
+                job_function_ref=user["job_function"],
                 engagement_type_ref="Ansat",
-                primary_ref='primary',
+                primary_ref="primary",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
             self.importer.add_address_type(
                 employee=owner_ref,
-                value=user['address']['dar-uuid'],
+                value=user["address"]["dar-uuid"],
                 type_ref="AdressePostEmployee",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
             self.importer.add_address_type(
                 employee=owner_ref,
-                value=user['phone'],
-                visibility=user['secret_phone'],
+                value=user["phone"],
+                visibility=user["secret_phone"],
                 type_ref="PhoneEmployee",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
             self.importer.add_address_type(
                 employee=owner_ref,
-                value=user['email'],
+                value=user["email"],
                 type_ref="EmailEmployee",
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
-            if user['location']:
+            if user["location"]:
                 self.importer.add_address_type(
                     employee=owner_ref,
-                    value=user['location'],
+                    value=user["location"],
                     type_ref="LocationEmployee",
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )
 
-            for it_system in user['it_systemer']:
+            for it_system in user["it_systemer"]:
                 self.importer.join_itsystem(
                     employee=owner_ref,
                     user_key=owner_ref,
                     itsystem_ref=it_system,
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )
 
-            if user['association'] is not None:
-                association = user['association']
+            if user["association"] is not None:
+                association = user["association"]
 
                 self.importer.add_association(
                     employee=owner_ref,
-                    organisation_unit=str(association['unit']),
-                    association_type_ref=association['type'],
+                    organisation_unit=str(association["unit"]),
+                    association_type_ref=association["type"],
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )
 
-            if user['role'] is not None:
-                role = user['role']
+            if user["role"] is not None:
+                role = user["role"]
                 self.importer.add_role(
                     employee=owner_ref,
-                    organisation_unit=str(role['unit']),
-                    role_type_ref=role['type'],
+                    organisation_unit=str(role["unit"]),
+                    role_type_ref=role["type"],
                     date_from=date_from,
-                    date_to=date_to
-
+                    date_to=date_to,
                 )
 
-            if user['manager']:
+            if user["manager"]:
                 self.importer.add_manager(
                     employee=owner_ref,
                     organisation_unit=user_node.parent.key,
                     manager_type_ref="Direktør",  # TODO
-                    manager_level_ref='Niveau 4',  # TODO
-                    responsibility_list=user['manager'],
+                    manager_level_ref="Niveau 4",  # TODO
+                    responsibility_list=user["manager"],
                     date_from=date_from,
-                    date_to=date_to
+                    date_to=date_to,
                 )
 
 
-@command(help=__doc__, context_settings=dict(
-    auto_envvar_prefix='MO',
-    help_option_names=['-h', '--help'],
-))
-@option('--mox-base', metavar='URL', default='http://localhost:8080')
-@option('--mora-base', metavar='URL', default='http://localhost:5000')
-@option('--municipality', metavar='NAME', default='Læsø')
-@option('--scale', type=int, default=4)
-@option('--extra-root/--no-extra-root', is_flag=True)
-@option('--kle/--no-kle', is_flag=True, default=False)
-@option('--small', 'org_size', flag_value=Size.Small)
-@option('--normal', 'org_size', flag_value=Size.Normal, default=True)
-@option('--large', 'org_size', flag_value=Size.Large)
+@command(
+    help=__doc__,
+    context_settings=dict(
+        auto_envvar_prefix="MO",
+        help_option_names=["-h", "--help"],
+    ),
+)
+@option("--mox-base", metavar="URL", default="http://localhost:8080")
+@option("--mora-base", metavar="URL", default="http://localhost:5000")
+@option("--municipality", metavar="NAME", default="Læsø")
+@option("--scale", type=int, default=4)
+@option("--extra-root/--no-extra-root", is_flag=True)
+@option("--kle/--no-kle", is_flag=True, default=False)
+@option("--small", "org_size", flag_value=Size.Small)
+@option("--normal", "org_size", flag_value=Size.Normal, default=True)
+@option("--large", "org_size", flag_value=Size.Large)
 def main(mox_base, mora_base, municipality, scale, org_size, extra_root, kle):
     with Session() as sess:
-        r = sess.get('http://dawa.aws.dk/kommuner', params={
-            'navn': municipality,
-            'struktur': 'flad',
-        })
+        r = sess.get(
+            "http://dawa.aws.dk/kommuner",
+            params={
+                "navn": municipality,
+                "struktur": "flad",
+            },
+        )
 
         if not r or not r.json():
-            raise ClickException('no such municipality: ' + municipality)
+            raise ClickException("no such municipality: " + municipality)
 
-        municipality_number = r.json()[0]['kode']
-        municipality_name = r.json()[0]['navn'] + ' Kommune'
+        municipality_number = r.json()[0]["kode"]
+        municipality_name = r.json()[0]["navn"] + " Kommune"
 
-    importer = ImportHelper(create_defaults=True,
-                            mox_base=mox_base,
-                            mora_base=mora_base,
-                            system_name="Artificial import",
-                            end_marker="STOP_DUMMY",
-                            store_integration_data=False,
-                            seperate_names=True)
+    importer = ImportHelper(
+        create_defaults=True,
+        mox_base=mox_base,
+        mora_base=mora_base,
+        system_name="Artificial import",
+        end_marker="STOP_DUMMY",
+        store_integration_data=False,
+        seperate_names=True,
+    )
 
-    CreateDummyOrg(importer,
-                   municipality_code=municipality_number,
-                   name=municipality_name,
-                   scale=scale,
-                   org_size=org_size,
-                   extra_root=True)
+    CreateDummyOrg(
+        importer,
+        municipality_code=municipality_number,
+        name=municipality_name,
+        scale=scale,
+        org_size=org_size,
+        extra_root=True,
+    )
 
     importer.import_all()
 
@@ -346,5 +372,5 @@ def main(mox_base, mora_base, municipality, scale, org_size, extra_root, kle):
         kle_importer.import_kle()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

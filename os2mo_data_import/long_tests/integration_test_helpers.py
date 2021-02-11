@@ -1,44 +1,48 @@
-import requests
 from datetime import datetime
 from urllib.parse import urljoin
+
+import requests
 
 
 def _count(mox_base, at=None):
 
     if not at:
-        at = datetime.strftime(datetime.now(), '%Y-%m-%d')
+        at = datetime.strftime(datetime.now(), "%Y-%m-%d")
 
     counts = {}
-    orgfunc = ('/organisation/organisationfunktion?virkningstid=' + at +
-               '&gyldighed=Aktiv&funktionsnavn={}')
-    unit = '/organisation/organisationenhed?virkningstid=' + at + '&gyldighed=Aktiv'
-    user = '/organisation/bruger?virkningstid=' + at + '&bvn=%'
+    orgfunc = (
+        "/organisation/organisationfunktion?virkningstid="
+        + at
+        + "&gyldighed=Aktiv&funktionsnavn={}"
+    )
+    unit = "/organisation/organisationenhed?virkningstid=" + at + "&gyldighed=Aktiv"
+    user = "/organisation/bruger?virkningstid=" + at + "&bvn=%"
 
-    url = urljoin(mox_base, orgfunc.format('Engagement'))
+    url = urljoin(mox_base, orgfunc.format("Engagement"))
     response = requests.get(url)
-    counts['engagement_count'] = len(response.json()['results'][0])
+    counts["engagement_count"] = len(response.json()["results"][0])
 
-    url = urljoin(mox_base, orgfunc.format('Orlov'))
+    url = urljoin(mox_base, orgfunc.format("Orlov"))
     response = requests.get(url)
-    counts['leave_count'] = len(response.json()['results'][0])
+    counts["leave_count"] = len(response.json()["results"][0])
 
-    url = urljoin(mox_base, orgfunc.format('Rolle'))
+    url = urljoin(mox_base, orgfunc.format("Rolle"))
     response = requests.get(url)
-    counts['role_count'] = len(response.json()['results'][0])
+    counts["role_count"] = len(response.json()["results"][0])
 
-    url = urljoin(mox_base, orgfunc.format('Leder'))
+    url = urljoin(mox_base, orgfunc.format("Leder"))
     response = requests.get(url)
-    counts['manager_count'] = len(response.json()['results'][0])
+    counts["manager_count"] = len(response.json()["results"][0])
 
-    url = urljoin(mox_base, orgfunc.format('Tilknytning'))
+    url = urljoin(mox_base, orgfunc.format("Tilknytning"))
     response = requests.get(url)
-    counts['association_count'] = len(response.json()['results'][0])
+    counts["association_count"] = len(response.json()["results"][0])
 
     url = urljoin(mox_base, unit)
     response = requests.get(url)
-    counts['unit_count'] = len(response.json()['results'][0])
+    counts["unit_count"] = len(response.json()["results"][0])
 
     url = urljoin(mox_base, user)
     response = requests.get(url)
-    counts['person_count'] = len(response.json()['results'][0])
+    counts["person_count"] = len(response.json()["results"][0])
     return counts

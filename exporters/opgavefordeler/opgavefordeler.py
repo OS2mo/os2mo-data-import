@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from urllib3 import Retry
 
-LOG_FILE = 'exports_opgavefordeler.log'
+LOG_FILE = "exports_opgavefordeler.log"
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,9 @@ def init_log():
     # write single lines and no exception tracebacks here as it is harder to
     # parse.
     try:
-        log_file_handler = RotatingFileHandler(filename=LOG_FILE,
-                                               maxBytes=1000000)
+        log_file_handler = RotatingFileHandler(filename=LOG_FILE, maxBytes=1000000)
     except OSError as err:
-        logger.critical("MOX_ROLLE_LOG_FILE: %s: %r", err.strerror,
-                        err.filename)
+        logger.critical("MOX_ROLLE_LOG_FILE: %s: %r", err.strerror, err.filename)
         sys.exit(3)
 
     log_file_handler.setFormatter(log_format)
@@ -46,7 +44,6 @@ def init_log():
 
 
 class OpgavefordelerExporter:
-
     def __init__(self):
         cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
         if not cfg_file.is_file():
@@ -59,10 +56,10 @@ class OpgavefordelerExporter:
         self.opgavefordeler_base = self.settings.get("exporters.opgavefordeler.base")
         self.opgavefordeler_session = self._get_opgavefordeler_session(
             username=self.settings.get("exporters.opgavefordeler.username"),
-            password=self.settings.get("exporters.opgavefordeler.password")
+            password=self.settings.get("exporters.opgavefordeler.password"),
         )
 
-        self.root_uuid = self.settings.get('exporters.opgavefordeler.root_uuid')
+        self.root_uuid = self.settings.get("exporters.opgavefordeler.root_uuid")
 
     def _get_mora_session(self, token) -> requests.Session:
         s = requests.Session()
@@ -70,8 +67,8 @@ class OpgavefordelerExporter:
 
         retry = Retry(connect=20, backoff_factor=1)
         adapter = HTTPAdapter(max_retries=retry)
-        s.mount('http://', adapter)
-        s.mount('https://', adapter)
+        s.mount("http://", adapter)
+        s.mount("https://", adapter)
         return s
 
     def _get_opgavefordeler_session(self, username, password) -> requests.Session:
@@ -94,7 +91,9 @@ class OpgavefordelerExporter:
         Get the UUID of the organisation configured in OS2mo
         :return:
         """
-        r = requests.get("{}/service/ou/{}/children".format(self.mora_base, org_unit_uuid))
+        r = requests.get(
+            "{}/service/ou/{}/children".format(self.mora_base, org_unit_uuid)
+        )
         r.raise_for_status()
         return r.json()
 
@@ -103,7 +102,9 @@ class OpgavefordelerExporter:
         Get the UUID of the organisation configured in OS2mo
         :return:
         """
-        r = requests.get("{}/service/ou/{}/details/manager".format(self.mora_base, org_unit_uuid))
+        r = requests.get(
+            "{}/service/ou/{}/details/manager".format(self.mora_base, org_unit_uuid)
+        )
         r.raise_for_status()
         manager = r.json()
 
@@ -111,7 +112,9 @@ class OpgavefordelerExporter:
             return {}
 
         if len(manager) > 1:
-            logger.warning('More than one manager found for UUID {}'.format(org_unit_uuid))
+            logger.warning(
+                "More than one manager found for UUID {}".format(org_unit_uuid)
+            )
 
         return manager[0]
 
@@ -131,7 +134,9 @@ class OpgavefordelerExporter:
         Get the details of a specific employee
         :return:
         """
-        r = requests.get("{}/service/e/{}/details/{}".format(self.mora_base, employee_uuid, detail))
+        r = requests.get(
+            "{}/service/e/{}/details/{}".format(self.mora_base, employee_uuid, detail)
+        )
         r.raise_for_status()
         return r.json()
 
@@ -141,94 +146,100 @@ class OpgavefordelerExporter:
         Get the details of a specific org unit
         :return:
         """
-        r = requests.get("{}/service/ou/{}/details/{}".format(self.mora_base, org_unit_uuid, detail))
+        r = requests.get(
+            "{}/service/ou/{}/details/{}".format(self.mora_base, org_unit_uuid, detail)
+        )
         r.raise_for_status()
         return r.json()
 
     @staticmethod
     def convert_unit(unit):
         converted = {
-            "businessKey": unit['uuid'],
-            "name": unit['name'],
-            "esdhId": unit['uuid'],
-            "esdhLabel": unit['name'],
+            "businessKey": unit["uuid"],
+            "name": unit["name"],
+            "esdhId": unit["uuid"],
+            "esdhLabel": unit["name"],
         }
         return converted
 
     def convert_employee(self, engagement):
-        person_uuid = engagement['person']['uuid']
+        person_uuid = engagement["person"]["uuid"]
         employee = self._get_employee(person_uuid)
-        addresses = self._get_employee_detail(person_uuid, 'address')
+        addresses = self._get_employee_detail(person_uuid, "address")
 
         phone = {}
         phones = list(
-            filter(lambda x: x['address_type']['scope'] == 'PHONE', addresses))
+            filter(lambda x: x["address_type"]["scope"] == "PHONE", addresses)
+        )
         if phones:
             phone = phones[0]
 
         email = {}
         emails = list(
-            filter(lambda x: x['address_type']['scope'] == 'EMAIL', addresses))
+            filter(lambda x: x["address_type"]["scope"] == "EMAIL", addresses)
+        )
         if emails:
             email = emails[0]
 
         # Eliminate extra whitespace
-        name = str.join(' ', employee['name'].split())
+        name = str.join(" ", employee["name"].split())
 
         return {
-            "businessKey": engagement['uuid'],
+            "businessKey": engagement["uuid"],
             "name": name,
-            "email": email.get('value', ""),
-            "esdhId": engagement['uuid'],
+            "email": email.get("value", ""),
+            "esdhId": engagement["uuid"],
             "esdhLabel": name,
-            "phone": phone.get('value', ""),
-            "initials": employee['user_key'],
-            "jobTitle": engagement['job_function']['name']
+            "phone": phone.get("value", ""),
+            "initials": employee["user_key"],
+            "jobTitle": engagement["job_function"]["name"],
         }
 
     def handle_unit(self, unit):
-        logger.debug('Processing unit {}'.format(unit['uuid']))
+        logger.debug("Processing unit {}".format(unit["uuid"]))
 
         # Convert unit details
         converted_unit = self.convert_unit(unit)
 
-        converted_unit['children'] = self.handle_children(unit)
-        converted_unit['manager'] = self.handle_manager(unit)
+        converted_unit["children"] = self.handle_children(unit)
+        converted_unit["manager"] = self.handle_manager(unit)
         employees = self.handle_employees(unit)
         if employees:
-            converted_unit['employees'] = employees
+            converted_unit["employees"] = employees
 
         return converted_unit
 
     def handle_children(self, unit):
         children = []
-        if unit['child_count'] > 0:
-            child_units = self._get_org_unit_children(unit['uuid'])
+        if unit["child_count"] > 0:
+            child_units = self._get_org_unit_children(unit["uuid"])
             for child in child_units:
                 children.append(self.handle_unit(child))
         return children
 
     def handle_manager(self, unit):
-        logger.debug('Handling manager for {}'.format(unit['uuid']))
-        manager = self._get_org_unit_manager(unit['uuid'])
+        logger.debug("Handling manager for {}".format(unit["uuid"]))
+        manager = self._get_org_unit_manager(unit["uuid"])
 
         if not manager:
             return {}
 
-        person = manager['person']
+        person = manager["person"]
         if not person:
-            logger.warning('Vacant manager for org unit {}'.format(unit['uuid']))
+            logger.warning("Vacant manager for org unit {}".format(unit["uuid"]))
             return {}
-        engagements = self._get_employee_detail(person['uuid'], 'engagement')
+        engagements = self._get_employee_detail(person["uuid"], "engagement")
         if len(engagements) > 1:
-            logger.warning('More than one engagement active for employee {}'.format(person['uuid']))
+            logger.warning(
+                "More than one engagement active for employee {}".format(person["uuid"])
+            )
         engagement = engagements[0]
 
         return self.convert_employee(engagement)
 
     def handle_employees(self, unit):
-        logger.debug('Handling employees for {}'.format(unit['uuid']))
-        engagements = self._get_org_unit_detail(unit['uuid'], 'engagement')
+        logger.debug("Handling employees for {}".format(unit["uuid"]))
+        engagements = self._get_org_unit_detail(unit["uuid"], "engagement")
 
         converted = [self.convert_employee(engagement) for engagement in engagements]
         return converted
@@ -244,7 +255,8 @@ class OpgavefordelerExporter:
         if r.status_code == 504:
             logger.warning(
                 "Opgavefordeler returned 504 - payload was "
-                "probably submitted successfully")
+                "probably submitted successfully"
+            )
         else:
             r.raise_for_status()
 
@@ -257,7 +269,7 @@ class OpgavefordelerExporter:
 
         root_unit = ""
         for child in children:
-            if child['uuid'] == self.root_uuid:
+            if child["uuid"] == self.root_uuid:
                 root_unit = child
 
         # Process root unit
