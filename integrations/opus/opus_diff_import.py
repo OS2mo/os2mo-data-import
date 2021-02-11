@@ -907,19 +907,16 @@ def start_opus_diff(ad_reader=None):
         raise RunDBInitException('Local base not correctly initialized')
     xml_date, latest_date = opus_helpers.next_xml_file(run_db, dumps)
 
-    if xml_date is not None:
-        xml_file = dumps[xml_date]
-
-        opus_helpers.local_db_insert((xml_date, 'Running diff update since {}'))
-        msg = 'Start update: File: {}, update since: {}'
-        logger.info(msg.format(xml_file, latest_date))
-        print(msg.format(xml_file, latest_date))
-
-        diff = OpusDiffImport(latest_date, ad_reader=ad_reader,
-                                               employee_mapping=employee_mapping)
-        diff.start_import(xml_file, include_terminations=True)
-        logger.info('Ended update')
-        opus_helpers.local_db_insert((xml_date, 'Diff update ended: {}'))
+    xml_file = dumps[xml_date]
+    opus_helpers.local_db_insert((xml_date, 'Running diff update since {}'))
+    msg = 'Start update: File: {}, update since: {}'
+    logger.info(msg.format(xml_file, latest_date))
+    print(msg.format(xml_file, latest_date))
+    diff = OpusDiffImport(latest_date, ad_reader=ad_reader,
+                                           employee_mapping=employee_mapping)
+    diff.start_import(xml_file, include_terminations=True)
+    logger.info('Ended update')
+    opus_helpers.local_db_insert((xml_date, 'Diff update ended: {}'))
 
 
 if __name__ == '__main__':
