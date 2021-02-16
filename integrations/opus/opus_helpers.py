@@ -8,9 +8,10 @@ import sqlite3
 import datetime
 from operator import itemgetter
 from pathlib import Path
-
+from deepdiff import DeepDiff
+from tqdm import tqdm
 import xmltodict
-
+from operator import itemgetter
 from integrations import cpr_mapper
 from integrations.opus import opus_import
 from integrations.opus import opus_diff_import
@@ -89,10 +90,10 @@ def _next_xml_file(run_db, dumps):
     row = c.fetchone()
     latest_date = row[1]
     next_date = None
-    if 'Running' in row[2]:
-        print('Critical error')
-        logging.error('Previous run did not return!')
-        raise ImporterrunNotCompleted('Previous run did not return!')
+    # if 'Running' in row[2]:
+    #     print('Critical error')
+    #     logging.error('Previous run did not return!')
+    #     raise ImporterrunNotCompleted('Previous run did not return!')
 
     for date in sorted(dumps.keys()):
         if date > latest_date:
@@ -175,7 +176,50 @@ def start_opus_import(importer, ad_reader=None, force=False):
 
     _local_db_insert((xml_date, 'Import ended: {}'))
 
+def parser(target_file, filter_ids):
+    data = xmltodict.parse(target_file.read_text())['kmd']
+    units = data['orgUnit'][1:]
+    units = filter_units(units, filter_ids)
+    employees = data['employee']
+    return units, employees
 
+
+def find_changes(before, after, disable_tqdm=False):
+    """ Filter a list of dictionaries based on differences to another list of dictionaries
+    Used to find changes to org_units and employees in opus files.
+    Any registration in lastChanged is ignored here.
+
+    Returns: list of dictionaries from 'after' where there are changes from 'before'
+    >>> a = [{"@id":1, "text":"unchanged", '@lastChanged': 'some day'}, {"@id":2, "text":"before", '@lastChanged':'today'}]
+    >>> b = [{"@id":1, "text":"unchanged", '@lastChanged': 'another day'}, {"@id":2, "text":"after"}]
+    >>> find_changes(a, a, disable_tqdm=True)
+    []
+    >>> find_changes(a, b, disable_tqdm=True)
+    [{'@id': 2, 'text': 'after'}]
+    >>> find_changes(b, a, disable_tqdm=True)
+    [{'@id': 2, 'text': 'before', '@lastChanged': 'today'}]
+    """
+    old_ids = list(map(itemgetter('@id'), before))
+    old_map = dict(zip(old_ids,before))
+    changed_obj= []
+    for obj in tqdm(after, desc="Finding changes", disable=disable_tqdm):
+        if obj['@id'] not in old_ids:
+            changed_obj.append(obj)
+        else:
+            diff = DeepDiff(obj, old_map[obj['@id']], exclude_paths={"root['@lastChanged']"})
+            if diff != {}:
+                changed_obj.append(obj)
+
+    return changed_obj
+
+def file_diff(date1, date2, filter_ids):
+    units1, employees1 = parser(date1, filter_ids)
+    units2, employees2 = parser(date2, filter_ids)
+
+    units = find_changes(units1, units2)
+    employees = find_changes(employees1, employees2)
+
+    return units , employees
 def start_opus_diff(ad_reader=None):
     """
     Start an opus update, use the oldest available dump that has not
@@ -191,19 +235,19 @@ def start_opus_diff(ad_reader=None):
         raise RunDBInitException('Local base not correctly initialized')
     xml_date, latest_date = _next_xml_file(run_db, dumps)
 
-    if xml_date is not None:
-        xml_file = dumps[xml_date]
-
-        _local_db_insert((xml_date, 'Running diff update since {}'))
-        msg = 'Start update: File: {}, update since: {}'
-        logger.info(msg.format(xml_file, latest_date))
-        print(msg.format(xml_file, latest_date))
-
-        diff = opus_diff_import.OpusDiffImport(latest_date, ad_reader=ad_reader,
+    filter_ids = SETTINGS.get('integrations.opus.units.filter_ids', [])
+    print("Looking for changes...")
+    units, employees = file_diff(dumps[latest_date], dumps[xml_date], filter_ids)
+    print("Found changes to {} units and {} employees ".format(len(units), len(employees)))
+    _local_db_insert((xml_date, 'Running diff update since {}'))
+    msg = 'Start update: File: {}, update since: {}'
+    logger.info(msg.format(xml_date, latest_date))
+    print(msg.format(xml_date, latest_date))
+    diff = opus_diff_import.OpusDiffImport(latest_date, ad_reader=ad_reader,
                                                employee_mapping=employee_mapping)
-        diff.start_re_import(xml_file, include_terminations=True)
-        logger.info('Ended update')
-        _local_db_insert((xml_date, 'Diff update ended: {}'))
+    diff.start_re_import(units, employees, include_terminations=True)
+    logger.info('Ended update')
+    _local_db_insert((xml_date, 'Diff update ended: {}'))
 
 
 def read_dump_data(dump_file):

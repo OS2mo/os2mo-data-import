@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 import xmltodict
-
+from tqdm import tqdm
 from pathlib import Path
 from requests import Session
 from datetime import datetime
@@ -103,7 +103,7 @@ class OpusDiffImport(object):
         # /organisationfunktion?funktionsnavn=Rolle&virkningFra=2019-01-01
         self.role_cache = []
         units = self.helper._mo_lookup(self.org_uuid, 'o/{}/ou?limit=1000000000')
-        for unit in units['items']:
+        for unit in tqdm(units['items'], desc="Read roles"):
             for validity in ['past', 'present', 'future']:
                 url = 'ou/{}/details/role?validity=' + validity
                 roles = self.helper._mo_lookup(unit['uuid'], url)
@@ -847,26 +847,19 @@ class OpusDiffImport(object):
                     self.terminate_detail(org_funk_info['manager'],
                                           detail_type='manager')
 
-    def start_re_import(self, xml_file, include_terminations=False):
+    def start_re_import(self, units, employees, include_terminations=False):
         """
         Start an opus import, run the oldest available dump that
         has not already been imported.
         """
-        self.parser(xml_file)
+        
+        for unit in tqdm(units):
+            self.update_unit(unit)
 
-        for unit in self.units:
-            last_changed = datetime.strptime(unit['@lastChanged'], '%Y-%m-%d')
-            # Turns out org-unit updates are sometimes a day off
-            last_changed = last_changed + timedelta(days=1)
-            if last_changed > self.latest_date:
-                self.update_unit(unit)
-
-        for employee in self.employees:
+        for employee in tqdm(employees):
             last_changed_str = employee.get('@lastChanged')
             if last_changed_str is not None:  # This is a true employee-object.
-                last_changed = datetime.strptime(last_changed_str, '%Y-%m-%d')
-                if last_changed > self.latest_date:
-                    self.update_employee(employee)
+                self.update_employee(employee)
 
                 # Changes to Roller is not included in @lastChanged...
                 if 'function' in employee:
