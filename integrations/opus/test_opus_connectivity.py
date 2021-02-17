@@ -2,7 +2,7 @@ import json
 import requests
 import argparse
 
-from exporters.utils import load_settings
+from exporters.utils.load_settings import load_settings
 from pathlib import Path
 from os2mo_helpers.mora_helpers import MoraHelper
 

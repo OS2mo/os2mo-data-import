@@ -1,7 +1,7 @@
 import json
 import pathlib
 import sqlite3
-from exporters.utils import load_settings
+from exporters.utils.load_settings import load_settings
 
 # TODO:
 # This file exists in two quite similar versions.

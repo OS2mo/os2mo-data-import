@@ -5,7 +5,7 @@ from pathlib import Path
 
 import requests
 import xmltodict
-from exporters.utils import load_settings
+from exporters.utils.load_settings import load_settings
 from integrations import dawa_helper
 from integrations.ad_integration import ad_reader
 from integrations.opus import opus_helpers, payloads

@@ -12,12 +12,13 @@ from pathlib import Path
 import xmltodict
 from integrations import cpr_mapper
 from integrations.opus import opus_diff_import, opus_import
+from exporters.utils.load_settings import load_settings
 # from integrations.opus.opus_exceptions import NoNewerDumpAvailable
 from integrations.opus.opus_exceptions import (ImporterrunNotCompleted,
                                                RedundantForceException,
                                                RunDBInitException)
 
-
+SETTINGS = load_settings()
 DUMP_PATH = Path(SETTINGS['integrations.opus.import.xml_path'])
 START_DATE = datetime.datetime(2019, 1, 1, 0, 0)
 

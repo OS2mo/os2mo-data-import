@@ -5,7 +5,8 @@ import pathlib
 from integrations.ad_integration import ad_reader
 from integrations.opus.opus_diff_import import start_opus_diff
 from integrations.opus.opus_exceptions import RunDBInitException
-from integrations.opus.opus_helpers import update_employee, load_settings, read_available_dumps
+from integrations.opus.opus_helpers import update_employee, read_available_dumps
+from exporters.utils.load_settings import load_settings
 from integrations.opus.opus_import import start_opus_import
 from os2mo_data_import import ImportHelper
 
