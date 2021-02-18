@@ -9,7 +9,7 @@ from integrations import dawa_helper
 from integrations.opus import opus_helpers
 from os2mo_helpers.mora_helpers import MoraHelper
 from integrations.opus.opus_exceptions import UnknownOpusAction
-
+import constants
 LOG_LEVEL = logging.DEBUG
 LOG_FILE = 'mo_integrations.log'
 
@@ -64,7 +64,7 @@ class OpusImport(object):
 
         importer.new_itsystem(
             identifier='Opus',
-            system_name='Opus'
+            system_name=constants.it_systems['Opus']
         )
 
         self.ad_people = {}
@@ -74,7 +74,7 @@ class OpusImport(object):
             self.ad_reader = ad_reader
             self.importer.new_itsystem(
                 identifier='AD',
-                system_name='Active Directory'
+                system_name=constants.it_systems['AD']
             )
             self.ad_reader.cache_all()
 

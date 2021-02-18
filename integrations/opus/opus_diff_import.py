@@ -17,6 +17,7 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from integrations.opus.calculate_primary import MOPrimaryEngagementUpdater
 from integrations.opus.opus_exceptions import UnknownOpusUnit
 from integrations.opus.opus_exceptions import EmploymentIdentifierNotUnique
+import constants
 
 logger = logging.getLogger("opusDiff")
 
@@ -563,7 +564,7 @@ class OpusDiffImport(object):
         if 'userId' in employee:
             payload = payloads.connect_it_system_to_user(
                 employee['userId'],
-                self.it_systems['Opus'],
+                self.it_systems[constants.it_system['Opus']],
                 return_uuid
             )
             logger.debug('Opus account payload: {}'.format(payload))
@@ -575,7 +576,7 @@ class OpusDiffImport(object):
         if sam_account:
             payload = payloads.connect_it_system_to_user(
                 sam_account,
-                self.it_systems['Active Directory'],
+                self.it_systems[constants.it_system['AD']],
                 return_uuid
             )
             logger.debug('AD account payload: {}'.format(payload))
