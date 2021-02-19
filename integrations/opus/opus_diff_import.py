@@ -54,7 +54,7 @@ UNIT_ADDRESS_CHECKS = {
 }
 
 EMPLOYEE_ADDRESS_CHECKS = {
-    'phone': 'TelefonEmployee',
+    'phone': 'PhoneEmployee',
     'email': 'EmailEmployee',
     'dar': 'AdressePostEmployee'
 }
@@ -945,7 +945,7 @@ if __name__ == '__main__':
     
     SETTINGS = load_settings()
 
-    ad_reader = ad_reader.ADParameterReader()
+    ad_reader = None
 
     try:
         start_opus_diff(ad_reader=ad_reader)
