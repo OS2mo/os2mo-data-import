@@ -40,21 +40,36 @@ def generate_ntlm_session(hostname, system_user, password):
     return session
 
 
-class ReauthingKerberosSession(Session):
+class ReauthenticatingKerberosSession(Session):
+    """
+    Wrapper around WinRM Session object that automatically tries to generate
+    a new Kerberos token if authentication fails
+    """
 
     def _generate_kerberos_ticket(self):
+        """
+        Tries to generate a new Kerberos ticket, through a call to kinit
+        Raises an exception if the subprocess has non-zero exit code
+        """
         cmd = ['kinit', self._username]
-        success = subprocess.run(cmd, input=self._password.encode(),
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL).returncode
-        return not bool(success)
+        subprocess.run(
+            cmd,
+            check=True,
+            input=self._password.encode(),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
-    def __init__(self, target, auth, username, password, **kwargs):
+    def __init__(self, target: str, username: str, password: str):
         self._username = username
         self._password = password
         self._generate_kerberos_ticket()
 
-        super().__init__(target, auth, **kwargs)
+        super().__init__(
+            target=target,
+            transport='kerberos',
+            auth=(None, None)
+        )
 
     def run_cmd(self, *args, **kwargs):
         try:
@@ -79,10 +94,8 @@ def generate_kerberos_session(hostname, username=None, password=None):
     Returns:
         winrm.Session
     """
-    session = ReauthingKerberosSession(
+    session = ReauthenticatingKerberosSession(
         "http://{}:5985/wsman".format(hostname),
-        transport="kerberos",
-        auth=(None, None),
         username=username,
         password=password,
     )
@@ -93,7 +106,8 @@ class AD:
     def __init__(self, all_settings=None, index=0):
         self.all_settings = all_settings
         if self.all_settings is None:
-            self.all_settings = read_ad_conf_settings.read_settings(index=index)
+            self.all_settings = read_ad_conf_settings.read_settings(
+                index=index)
         self.session = self._create_session()
         self.retry_exceptions = self._get_retry_exceptions()
         self.results = {}
@@ -128,7 +142,8 @@ class AD:
                 self.all_settings["primary"]["password"],
             )
         else:
-            raise ValueError("Unknown WinRM method" + str(self.all_settings["primary"]["method"]))
+            raise ValueError("Unknown WinRM method" + str(
+                self.all_settings["primary"]["method"]))
         return session
 
     def _run_ps_script(self, ps_script):
@@ -350,7 +365,7 @@ class AD:
             server_string = " -Server {}".format(server)
         elif self.all_settings["global"].get("servers"):
             server_string = " -Server {}".format(
-            random.choice(self.all_settings["global"]["servers"])
+                random.choice(self.all_settings["global"]["servers"])
             )
 
         command_end = (
