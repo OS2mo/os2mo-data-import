@@ -1,3 +1,5 @@
+import subprocess
+
 import time
 import json
 import random
@@ -37,12 +39,23 @@ def generate_ntlm_session(hostname, system_user, password):
     return session
 
 
-def generate_kerberos_session(hostname):
+def krbauth(username, password):
+    cmd = ['kinit', username]
+    success = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+    return not bool(success)
+
+
+def generate_kerberos_session(hostname, username=None, password=None):
     """Method to create a kerberos session for running powershell scripts.
 
     Returns:
         winrm.Session
     """
+    try:
+        krbauth(username, password)
+    except:
+        pass
+
     session = Session(
         "http://{}:5985/wsman".format(hostname),
         transport="kerberos",
@@ -85,7 +98,9 @@ class AD:
             )
         elif self.all_settings["primary"]["method"] == "kerberos":
             session = generate_kerberos_session(
-                self.all_settings["global"]["winrm_host"]
+                self.all_settings["global"]["winrm_host"],
+                self.all_settings["primary"]["system_user"],
+                self.all_settings["primary"]["password"],
             )
         else:
             raise ValueError("Unknown WinRM method" + str(self.all_settings["primary"]["method"]))
