@@ -4,10 +4,10 @@ import time
 import json
 import random
 import logging
-from requests_kerberos.exceptions import KerberosExchangeError
 
 from winrm import Session
 from winrm.exceptions import WinRMTransportError
+from winrm.vendor.requests_kerberos.exceptions import KerberosExchangeError
 
 from integrations.ad_integration import ad_exceptions
 from integrations.ad_integration import read_ad_conf_settings
@@ -58,17 +58,19 @@ class ReauthingKerberosSession(Session):
 
     def run_cmd(self, *args, **kwargs):
         try:
-            return super().run_cmd(*args, **kwargs)
+            rs = super().run_cmd(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            return super().run_cmd(*args, **kwargs)
+            rs = super().run_cmd(*args, **kwargs)
+        return rs
 
     def run_ps(self, *args, **kwargs):
         try:
-            return super().run_ps(*args, **kwargs)
+            rs = super().run_ps(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            return super().run_ps(*args, **kwargs)
+            rs = super().run_ps(*args, **kwargs)
+        return rs
 
 
 def generate_kerberos_session(hostname, username=None, password=None):
