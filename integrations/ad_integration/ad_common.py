@@ -40,7 +40,7 @@ def generate_ntlm_session(hostname, system_user, password):
     return session
 
 
-class ReauthenticatingKerberosSession(Session):
+class ReauthenticatingKerberosSession:
     """
     Wrapper around WinRM Session object that automatically tries to generate
     a new Kerberos token if authentication fails
@@ -64,31 +64,37 @@ class ReauthenticatingKerberosSession(Session):
             print(e.stderr.decode("utf-8"))
             raise
 
+    def _create_new_session(self):
+        return Session(
+            target=self._target,
+            transport='kerberos',
+            auth=(None, None)
+        )
+
     def __init__(self, target: str, username: str, password: str):
         self._username = username
         self._password = password
         self._generate_kerberos_ticket()
 
-        super().__init__(
-            target=target,
-            transport='kerberos',
-            auth=(None, None)
-        )
+        self._target = target
+        self._session = self._create_new_session()
 
     def run_cmd(self, *args, **kwargs):
         try:
-            rs = super().run_cmd(*args, **kwargs)
+            rs = self._session.run_cmd(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            rs = super().run_cmd(*args, **kwargs)
+            self._session = self._create_new_session()
+            rs = self._session.run_cmd(*args, **kwargs)
         return rs
 
     def run_ps(self, *args, **kwargs):
         try:
-            rs = super().run_ps(*args, **kwargs)
+            rs = self._session.run_ps(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            rs = super().run_ps(*args, **kwargs)
+            self._session = self._create_new_session()
+            rs = self._session.run_ps(*args, **kwargs)
         return rs
 
 
