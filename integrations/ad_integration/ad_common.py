@@ -49,25 +49,26 @@ class ReauthingKerberosSession(Session):
                                  stderr=subprocess.DEVNULL).returncode
         return not bool(success)
 
-    def __init__(self, target, auth, **kwargs):
-        self._username, self._password = auth
+    def __init__(self, target, auth, username, password, **kwargs):
+        self._username = username
+        self._password = password
         self._generate_kerberos_ticket()
 
         super().__init__(target, auth, **kwargs)
 
     def run_cmd(self, *args, **kwargs):
         try:
-            super().run_cmd(*args, **kwargs)
+            return super().run_cmd(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            super().run_cmd(*args, **kwargs)
+            return super().run_cmd(*args, **kwargs)
 
     def run_ps(self, *args, **kwargs):
         try:
-            super().run_cmd(*args, **kwargs)
+            return super().run_ps(*args, **kwargs)
         except KerberosExchangeError:
             self._generate_kerberos_ticket()
-            super().run_cmd(*args, **kwargs)
+            return super().run_ps(*args, **kwargs)
 
 
 def generate_kerberos_session(hostname, username=None, password=None):
@@ -79,7 +80,9 @@ def generate_kerberos_session(hostname, username=None, password=None):
     session = ReauthingKerberosSession(
         "http://{}:5985/wsman".format(hostname),
         transport="kerberos",
-        auth=(username, password),
+        auth=(None, None),
+        username=username,
+        password=password,
     )
     return session
 
