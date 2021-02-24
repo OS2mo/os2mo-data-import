@@ -1,3 +1,5 @@
+import subprocess
+
 import time
 import json
 import random
@@ -5,6 +7,7 @@ import logging
 
 from winrm import Session
 from winrm.exceptions import WinRMTransportError
+from winrm.vendor.requests_kerberos.exceptions import KerberosExchangeError
 
 from integrations.ad_integration import ad_exceptions
 from integrations.ad_integration import read_ad_conf_settings
@@ -37,16 +40,81 @@ def generate_ntlm_session(hostname, system_user, password):
     return session
 
 
-def generate_kerberos_session(hostname):
-    """Method to create a kerberos session for running powershell scripts.
+class ReauthenticatingKerberosSession:
+    """
+    Wrapper around WinRM Session object that automatically tries to generate
+    a new Kerberos token and session if authentication fails
+    """
+
+    def _generate_kerberos_ticket(self):
+        """
+        Tries to generate a new Kerberos ticket, through a call to kinit
+        Raises an exception if the subprocess has non-zero exit code
+        """
+        cmd = ['kinit', self._username]
+        try:
+            subprocess.run(
+                cmd,
+                check=True,
+                input=self._password.encode(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stderr.decode("utf-8"))
+            raise
+
+    def _authenticate(self):
+        """
+        Generate new Kerberos ticket and clean up session
+
+        XXX: Session is not properly cleaned up when a command fails
+             so we have to create a new internal session object
+        """
+        self._generate_kerberos_ticket()
+        self._session = Session(
+            target=self._target,
+            transport='kerberos',
+            auth=(None, None)
+        )
+
+    def __init__(self, target: str, username: str, password: str):
+        self._username = username
+        self._password = password
+        self._target = target
+        self._authenticate()
+
+    def run_cmd(self, *args, **kwargs):
+        try:
+            rs = self._session.run_cmd(*args, **kwargs)
+        except KerberosExchangeError:
+            self._authenticate()
+            rs = self._session.run_cmd(*args, **kwargs)
+        return rs
+
+    def run_ps(self, *args, **kwargs):
+        try:
+            rs = self._session.run_ps(*args, **kwargs)
+        except KerberosExchangeError:
+            self._authenticate()
+            rs = self._session.run_ps(*args, **kwargs)
+        return rs
+
+
+def generate_kerberos_session(hostname, username=None, password=None):
+    """
+    Method to create a kerberos session for running powershell scripts.
+
+    Returned object will have same public interface as WinRM Session, despite
+    not inheriting from it
 
     Returns:
-        winrm.Session
+        ReauthenticatingKerberosSession
     """
-    session = Session(
+    session = ReauthenticatingKerberosSession(
         "http://{}:5985/wsman".format(hostname),
-        transport="kerberos",
-        auth=(None, None),
+        username=username,
+        password=password,
     )
     return session
 
@@ -55,7 +123,8 @@ class AD:
     def __init__(self, all_settings=None, index=0):
         self.all_settings = all_settings
         if self.all_settings is None:
-            self.all_settings = read_ad_conf_settings.read_settings(index=index)
+            self.all_settings = read_ad_conf_settings.read_settings(
+                index=index)
         self.session = self._create_session()
         self.retry_exceptions = self._get_retry_exceptions()
         self.results = {}
@@ -85,10 +154,13 @@ class AD:
             )
         elif self.all_settings["primary"]["method"] == "kerberos":
             session = generate_kerberos_session(
-                self.all_settings["global"]["winrm_host"]
+                self.all_settings["global"]["winrm_host"],
+                self.all_settings["global"]["system_user"],
+                self.all_settings["global"]["password"],
             )
         else:
-            raise ValueError("Unknown WinRM method" + str(self.all_settings["primary"]["method"]))
+            raise ValueError("Unknown WinRM method" + str(
+                self.all_settings["primary"]["method"]))
         return session
 
     def _run_ps_script(self, ps_script):
@@ -310,7 +382,7 @@ class AD:
             server_string = " -Server {}".format(server)
         elif self.all_settings["global"].get("servers"):
             server_string = " -Server {}".format(
-            random.choice(self.all_settings["global"]["servers"])
+                random.choice(self.all_settings["global"]["servers"])
             )
 
         command_end = (
