@@ -45,21 +45,50 @@ def krbauth(username, password):
     return not bool(success)
 
 
+class ReauthingKerberosSession(Session):
+
+    def _krbauth(self):
+        cmd = ['kinit', self._username]
+        success = subprocess.run(cmd, input=self._password.encode(),
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL).returncode
+        return not bool(success)
+
+    def __init__(self, *args, username, password, **kwargs):
+        self._username = username
+        self._password = password
+        if not self._krbauth():
+            raise Exception
+
+        super().__init__(*args, **kwargs)
+
+    def run_cmd(self, *args, **kwargs):
+        try:
+            super().run_cmd(*args, **kwargs)
+        except:
+            self._krbauth()
+            super().run_cmd(*args, **kwargs)
+
+    def run_ps(self, *args, **kwargs):
+        try:
+            super().run_cmd(*args, **kwargs)
+        except:
+            self._krbauth()
+            super().run_cmd(*args, **kwargs)
+
+
 def generate_kerberos_session(hostname, username=None, password=None):
     """Method to create a kerberos session for running powershell scripts.
 
     Returns:
         winrm.Session
     """
-    try:
-        krbauth(username, password)
-    except:
-        pass
-
-    session = Session(
+    session = ReauthingKerberosSession(
         "http://{}:5985/wsman".format(hostname),
         transport="kerberos",
         auth=(None, None),
+        username=username,
+        password=password
     )
     return session
 
