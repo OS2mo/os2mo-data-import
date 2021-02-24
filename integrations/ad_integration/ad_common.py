@@ -52,13 +52,17 @@ class ReauthenticatingKerberosSession(Session):
         Raises an exception if the subprocess has non-zero exit code
         """
         cmd = ['kinit', self._username]
-        subprocess.run(
-            cmd,
-            check=True,
-            input=self._password.encode(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            s = subprocess.run(
+                cmd,
+                check=True,
+                input=self._password.encode(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            raise
 
     def __init__(self, target: str, username: str, password: str):
         self._username = username
