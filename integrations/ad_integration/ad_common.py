@@ -4,6 +4,7 @@ import time
 import json
 import random
 import logging
+from requests_kerberos.exceptions import KerberosExchangeError
 
 from winrm import Session
 from winrm.exceptions import WinRMTransportError
@@ -39,41 +40,33 @@ def generate_ntlm_session(hostname, system_user, password):
     return session
 
 
-def krbauth(username, password):
-    cmd = ['kinit', username]
-    success = subprocess.run(cmd, input=password.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
-    return not bool(success)
-
-
 class ReauthingKerberosSession(Session):
 
-    def _krbauth(self):
+    def _generate_kerberos_ticket(self):
         cmd = ['kinit', self._username]
         success = subprocess.run(cmd, input=self._password.encode(),
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL).returncode
         return not bool(success)
 
-    def __init__(self, *args, username, password, **kwargs):
-        self._username = username
-        self._password = password
-        if not self._krbauth():
-            raise Exception
+    def __init__(self, target, auth, **kwargs):
+        self._username, self._password = auth
+        self._generate_kerberos_ticket()
 
-        super().__init__(*args, **kwargs)
+        super().__init__(target, auth, **kwargs)
 
     def run_cmd(self, *args, **kwargs):
         try:
             super().run_cmd(*args, **kwargs)
-        except:
-            self._krbauth()
+        except KerberosExchangeError:
+            self._generate_kerberos_ticket()
             super().run_cmd(*args, **kwargs)
 
     def run_ps(self, *args, **kwargs):
         try:
             super().run_cmd(*args, **kwargs)
-        except:
-            self._krbauth()
+        except KerberosExchangeError:
+            self._generate_kerberos_ticket()
             super().run_cmd(*args, **kwargs)
 
 
@@ -86,9 +79,7 @@ def generate_kerberos_session(hostname, username=None, password=None):
     session = ReauthingKerberosSession(
         "http://{}:5985/wsman".format(hostname),
         transport="kerberos",
-        auth=(None, None),
-        username=username,
-        password=password
+        auth=(username, password),
     )
     return session
 
