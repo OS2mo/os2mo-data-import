@@ -53,7 +53,7 @@ class ReauthenticatingKerberosSession(Session):
         """
         cmd = ['kinit', self._username]
         try:
-            s = subprocess.run(
+            subprocess.run(
                 cmd,
                 check=True,
                 input=self._password.encode(),
@@ -61,7 +61,7 @@ class ReauthenticatingKerberosSession(Session):
                 stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError as e:
-            print(e.stderr)
+            print(e.stderr.decode("utf-8"))
             raise
 
     def __init__(self, target: str, username: str, password: str):
