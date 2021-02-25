@@ -250,6 +250,10 @@ def main():
 
     try:
         logger.info("Writing to Rollekataloget")
+
+        with open('rollekatalog.json', 'w') as f:
+            json.dump(payload, f, indent=2)
+
         result = requests.post(
             ROLLEKATALOG_URL,
             json=payload,
