@@ -18,7 +18,6 @@ import requests
 
 from os2mo_tools import mo_api
 
-
 cfg_file = pathlib.Path.cwd() / "settings" / "settings.json"
 if not cfg_file.is_file():
     raise Exception("No setting file")
@@ -36,7 +35,6 @@ LOG_PATH = os.environ.get("MOX_ROLLE_LOG_FILE")
 # Rollekataloget only supports one root org unit.
 # All other root org units in OS2mo will be made children of this one
 MAIN_ROOT_ORG_UNIT = SETTINGS["exporters.os2rollekatalog.main_root_org_unit"]
-
 
 MAPPING = {}
 
@@ -220,7 +218,14 @@ def get_users(connector):
     return converted_users
 
 
-def main():
+@click.command()
+@click.option(
+    '--print-payload',
+    default=False,
+    type=bool,
+    help='Print the payload to be sent to Rollekataloget on stdout'
+)
+def main(print_payload):
     """Main function - download from OS2MO and export to OS2Rollekatalog."""
     init_log()
 
@@ -252,8 +257,8 @@ def main():
     try:
         logger.info("Writing to Rollekataloget")
 
-        with open('rollekatalog.json', 'w') as f:
-            json.dump(payload, f, indent=2)
+        if print_payload:
+            print(json.dumps(payload))
 
         result = requests.post(
             ROLLEKATALOG_URL,
