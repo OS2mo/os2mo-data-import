@@ -391,8 +391,10 @@ kan tilføjes efterhånden som integrationen udvikles.
 
  * ``employment_number``: Lønsystemets ansættelsesnummer for medarbejderens primære
    engagement.
- * ``end_date``: Slutdato for længste ansættelse i MO, hvis en ansættelse ikke har
-   nogen kendt slutdato, angives 9999-12-31.
+ * ``start_date``: Startdato for den første nuværende eller fremtidige ansættelse i MO,
+                   hvis en ansættelse ikke har nogen kendt startdato, angives 1800-01-01.
+ * ``end_date``: Slutdato for den sidste nuværende eller fremtidige ansættelse i MO,
+                 hvis en ansættelse ikke har nogen kendt slutdato, angives 9999-12-31.
  * ``uuid``: Brugerens UUID i MO.
  * ``title``: Stillingsbetegnelse for brugerens primære engagement.
  * ``unit``: Navn på enheden for brugerens primære engagement.
