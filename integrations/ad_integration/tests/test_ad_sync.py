@@ -59,7 +59,6 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("email", "lee@magenta.dk", "emil@magenta.dk", "edit"),
             # Email terminated in AD
             ("email", None, "old.mo.email@example.org", "terminate"),
-
             # Telephone number (PUBLIC)
             # --------------------------
             # No telephone number in MO
@@ -73,7 +72,6 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("telephone", "90901111", "70101155", "edit"),
             # Telephone number terminated in AD
             ("telephone", None, "12345678", "terminate"),
-
             # Office number (INTERNAL)
             # -------------------------
             # No office number in MO
@@ -87,7 +85,6 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("office", "11", "420", "edit"),
             # Office number terminated in AD
             ("office", None, "42", "terminate"),
-
             # Mobile number (SECRET)
             # -----------------------
             # No mobile number in MO
@@ -101,7 +98,6 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("mobile", "90901111", "70101155", "edit"),
             # Mobile number terminated in AD
             ("mobile", None, "12345678", "terminate"),
-
             # Floor (no uuid)
             # ----------------
             # No floor number in MO
@@ -215,11 +211,11 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                     "payload": {
                         "type": "address",
                         "uuid": "address_uuid",
-                        "validity": {"to": today}
+                        "validity": {"to": today},
                     },
-                    "url": "details/terminate"
+                    "url": "details/terminate",
                 }
-            ]
+            ],
         }
         # Enrich expected with visibility
         if address_type_visibility:
