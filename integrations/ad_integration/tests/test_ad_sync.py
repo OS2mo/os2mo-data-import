@@ -22,6 +22,8 @@ def today_iso():
 
 
 class TestADMoSync(TestCase, TestADMoSyncMixin):
+    maxDiff = None
+
     def setUp(self):
         self._initialize_configuration()
 
@@ -55,6 +57,9 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("email", "emil@magenta.dk", "emil@magenta.dk", "noop"),
             ("email", "example@example.com", "emil@magenta.dk", "edit"),
             ("email", "lee@magenta.dk", "emil@magenta.dk", "edit"),
+            # Email terminated in AD
+            ("email", None, "old.mo.email@example.org", "terminate"),
+
             # Telephone number (PUBLIC)
             # --------------------------
             # No telephone number in MO
@@ -66,6 +71,9 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("telephone", "70101155", "70101155", "noop"),
             ("telephone", "90909090", "70101155", "edit"),
             ("telephone", "90901111", "70101155", "edit"),
+            # Telephone number terminated in AD
+            ("telephone", None, "12345678", "terminate"),
+
             # Office number (INTERNAL)
             # -------------------------
             # No office number in MO
@@ -77,6 +85,9 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("office", "420", "420", "noop"),
             ("office", "421", "420", "edit"),
             ("office", "11", "420", "edit"),
+            # Office number terminated in AD
+            ("office", None, "42", "terminate"),
+
             # Mobile number (SECRET)
             # -----------------------
             # No mobile number in MO
@@ -88,6 +99,9 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("mobile", "70101155", "70101155", "noop"),
             ("mobile", "90909090", "70101155", "edit"),
             ("mobile", "90901111", "70101155", "edit"),
+            # Mobile number terminated in AD
+            ("mobile", None, "12345678", "terminate"),
+
             # Floor (no uuid)
             # ----------------
             # No floor number in MO
@@ -99,6 +113,8 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             ("floor", "1st", "1st", "noop"),
             ("floor", "2nd", "1st", "edit"),
             ("floor", "3rd", "1st", "edit"),
+            # Floor number terminated in AD
+            ("floor", None, "1st", "terminate"),
         ]
     )
     def test_sync_address_data(self, address_type, ad_data, mo_data, expected):
@@ -113,6 +129,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                     'noop': Nothing in MO is updated.
                     'create': A new address is created in MO.
                     'edit': The current address in MO is updated.
+                    'terminate': The current address in MO is terminated.
         """
         today = today_iso()
         mo_values = self.mo_values_func()
@@ -192,6 +209,17 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                     "url": "details/edit",
                 }
             ],
+            "terminate": [
+                {
+                    "force": True,
+                    "payload": {
+                        "type": "address",
+                        "uuid": "address_uuid",
+                        "validity": {"to": today}
+                    },
+                    "url": "details/terminate"
+                }
+            ]
         }
         # Enrich expected with visibility
         if address_type_visibility:
@@ -200,6 +228,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                 "noop": lambda: {},  # aka. throw it away
                 "create": lambda: expected_sync[expected][0]["payload"],
                 "edit": lambda: payload_table["create"]()[0]["data"],
+                "terminate": lambda: {},
             }
             # Write the visibility into the table
             visibility_lower = address_type_visibility.lower()

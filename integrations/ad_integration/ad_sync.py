@@ -349,7 +349,13 @@ class AdMoSync(object):
 
         for field, klasse in self.mapping['user_addresses'].items():
             if not ad_object.get(field):
-                logger.debug('No such AD field: {}'.format(field))
+                logger.debug(
+                    'No such field %r in AD object %r', field, ad_object
+                )
+                if field in fields_to_edit:
+                    self._finalize_user_addresses(uuid, ad_object)
+                else:
+                    logger.debug('no fields to edit, field=%r', field)
                 continue
 
             if field not in fields_to_edit.keys():
@@ -423,7 +429,7 @@ class AdMoSync(object):
 
         # Find fields to terminate
         address_fields = self.mapping['user_addresses'].keys()
-        # we terminate even if somebody has removed the field from AD 
+        # we terminate even if somebody has removed the field from AD
         # address_fields = filter(check_ad_field_exists, address_fields)
         address_fields = filter(check_field_in_fields_to_edit, address_fields)
         address_fields = filter(check_validity_is_ok, address_fields)
@@ -497,7 +503,7 @@ class AdMoSync(object):
             raise Exception(msg.format(it_system, it_system_uuid))
 
     def update_all_users(self):
-        # Iterate over all AD's 
+        # Iterate over all AD's
         for index, _ in enumerate(self.settings["integrations.ad"]):
 
             self.stats = {
@@ -511,7 +517,7 @@ class AdMoSync(object):
             ad_reader = self._setup_ad_reader_and_cache_all(index=index)
 
             # move to read_conf_settings og valider på tværs af alle-ad'er
-            # så vi ikke overskriver addresser, itsystemer og extensionfelter 
+            # så vi ikke overskriver addresser, itsystemer og extensionfelter
             # fra et ad med  med værdier fra et andet
             self.mapping = ad_reader._get_setting()['ad_mo_sync_mapping']
             self._verify_it_systems()
