@@ -217,46 +217,24 @@ class AdMoSync(object):
                 'from': VALIDITY['from'],
                 'to': eng['to_date']
             }
-            for ad_field, mo_field in self.mapping['engagements'].items():
-                if mo_field == 'extension_1':
-                    mo_value = eng['extensions']['udvidelse_1']
-                if mo_field == 'extension_2':
-                    mo_value = eng['extensions']['udvidelse_2']
-                if mo_field == 'extension_3':
-                    mo_value = eng['extensions']['udvidelse_3']
-                if mo_field == 'extension_4':
-                    mo_value = eng['extensions']['udvidelse_4']
-                if mo_field == 'extension_5':
-                    mo_value = eng['extensions']['udvidelse_5']
-                if mo_field == 'extension_6':
-                    mo_value = eng['extensions']['udvidelse_6']
-                if mo_field == 'extension_7':
-                    mo_value = eng['extensions']['udvidelse_7']
-                if mo_field == 'extension_8':
-                    mo_value = eng['extensions']['udvidelse_8']
-                if mo_field == 'extension_9':
-                    mo_value = eng['extensions']['udvidelse_9']
-                if mo_field == 'extension_10':
-                    mo_value = eng['extensions']['udvidelse_10']
 
-                if not ad_object.get(ad_field):
-                    logger.info('{} not in ad_object'.format(ad_field))
+            field_mapping = {
+                f'extension_{x}': eng['extensions'][f'udvidelse_{x}']
+                for x in range(1, 11)
+            }
+
+            for ad_field, mo_field in self.mapping['engagements'].items():
+                mo_value = field_mapping.get(mo_field)
+                if mo_value is None:
+                    logger.error(
+                        'no field mapping for %r, not doing anything',
+                        mo_field,
+                    )
                     continue
-                payload = {
-                    'type': 'engagement',
-                    'uuid': eng['uuid'],
-                    'data': {
-                        mo_field: ad_object.get(ad_field),
-                        'validity': validity
-                    }
-                }
-                if mo_value == ad_object.get(ad_field):
-                    continue
-                logger.debug('Edit payload: {}'.format(payload))
-                response = self.helper._mo_post('details/edit', payload)
-                self.stats['engagements'] += 1
-                self.stats['users'].add(uuid)
-                logger.debug('Response: {}'.format(response.text))
+
+                self._edit_engagement_post_to_mo(
+                    ad_field, ad_object, mo_field, uuid, eng, validity
+                )
         else:
             print('No cache')
             user_engagements = self.helper.read_user_engagement(
@@ -271,26 +249,35 @@ class AdMoSync(object):
                     'to': eng['validity']['to']
                 }
                 for ad_field, mo_field in self.mapping['engagements'].items():
-                    if ad_object.get(ad_field):
-                        payload = {
-                            'type': 'engagement',
-                            'uuid': eng['uuid'],
-                            'data': {
-                                mo_field: ad_object.get(ad_field),
-                                'validity': validity
-                            }
-                        }
-                        if not eng[mo_field] == ad_object.get(ad_field):
-                            logger.debug('Edit payload: {}'.format(payload))
-                            response = self.helper._mo_post('details/edit', payload)
-                            self.stats['engagements'] += 1
-                            self.stats['users'].add(uuid)
-                            logger.debug('Response: {}'.format(response.text))
-                        else:
-                            print('Ingen ændring')
+                    self._edit_engagement_post_to_mo(
+                        ad_field, ad_object, mo_field, uuid, eng, validity
+                    )
 
-                    else:
-                        logger.info('{} not in ad_object'.format(ad_field))
+    def _edit_engagement_post_to_mo(self, ad_field, ad_object, mo_field, uuid, mo_engagement, validity):
+        if ad_field in ad_object:
+            mo_value = ad_object[ad_field]
+        else:
+            # Field is dropped from AD object. Empty its value in MO.
+            mo_value = ""
+
+        payload = {
+            'type': 'engagement',
+            'uuid': mo_engagement['uuid'],
+            'data': {
+                mo_field: mo_value,
+                'validity': validity
+            }
+        }
+
+        if mo_engagement[mo_field] == ad_object.get(ad_field):
+            logger.debug("No change, not editing engagement")
+        else:
+            logger.debug('Edit payload: %r', payload)
+            response = self.helper._mo_post('details/edit', payload)
+            self.stats['engagements'] += 1
+            self.stats['users'].add(uuid)
+            logger.debug('Response: %r', response.text)
+
 
     def _create_it_system(self, person_uuid, ad_username, mo_itsystem_uuid):
         payload = {
@@ -349,13 +336,11 @@ class AdMoSync(object):
 
         for field, klasse in self.mapping['user_addresses'].items():
             if not ad_object.get(field):
-                logger.debug(
-                    'No such field %r in AD object %r', field, ad_object
-                )
+                logger.debug('No such field %r in AD object', field)
                 if field in fields_to_edit:
                     self._finalize_user_addresses(uuid, ad_object)
                 else:
-                    logger.debug('no fields to edit, field=%r', field)
+                    logger.debug('%r not in fields to edit', field)
                 continue
 
             if field not in fields_to_edit.keys():

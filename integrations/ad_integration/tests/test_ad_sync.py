@@ -487,6 +487,107 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
         }
         self.assertEqual(self.ad_sync.mo_post_calls, expected_sync[expected])
 
+    def test_sync_engagement_dropped_field(self):
+        """Verify engagement data is synced correctly from AD to MO.
+        Test removal of dropped extensions in incoming AD object.
+
+        This tests the code path in `_edit_engagement` where `self.lc` is
+        None, e.g. the LoraCache is not configured and used.
+        """
+        today = today_iso()
+
+        def seed_mo():
+            element = {
+                "is_primary": True,
+                "uuid": "engagement_uuid",
+                "validity": {"from": "1960-06-29", "to": None},
+                "extension_2": "old mo value",
+            }
+            return {"engagement": [element]}
+
+        self._setup_admosync(
+            transform_settings=self._sync_engagement_mapping_transformer(
+                # Map an attr which does not exist in the AD object
+                {'extensionAttribute2': 'extension_2'}
+            ),
+            seed_mo=seed_mo,
+        )
+
+        self.assertEqual(self.ad_sync.mo_post_calls, [])
+
+        # Run full sync against the mocks
+        self.ad_sync.update_all_users()
+
+        # Verify that we send an empty value to MO for 'extension_2'
+        self.assertEqual(
+            self.ad_sync.mo_post_calls,
+            [
+                self._expected_engagement_edit_call(
+                    extension_2="", validity_from=today
+                )
+            ]
+        )
+
+    def test_sync_engagement_dropped_field_loracache(self):
+        """Verify engagement data is synced correctly from AD to MO.
+        Test removal of dropped extensions in incoming AD object.
+
+        This test mocks the presence of a `LoraCache` instance at `self.lc`.
+        """
+
+        class MockLoraCache:
+            # This implements enough of the real `LoraCache` to make
+            # `_edit_engagement` happy.
+
+            @property
+            def users(self):
+                return {mo_values['uuid']: [mo_values]}
+
+            @property
+            def engagements(self):
+                return {
+                    'engagement_uuid': [
+                        {
+                            'uuid': 'engagement_uuid',
+                            'user': mo_values['uuid'],
+                            'primary_boolean': True,
+                            'to_date': None,
+                            'extension_2': 'old mo value',
+                            "extensions": {
+                                "udvidelse_%d" % n: "old mo value #%d"
+                                for n in range(1, 11)
+                            },
+                        }
+                    ]
+                }
+
+        today = today_iso()
+        mo_values = self.mo_values_func()
+
+        self._setup_admosync(
+            transform_settings=self._sync_engagement_mapping_transformer(
+                # Map an attr which does not exist in the AD object
+                {'extensionAttribute2': 'extension_2'}
+            ),
+        )
+
+        self.assertEqual(self.ad_sync.mo_post_calls, [])
+
+        self.ad_sync.lc = MockLoraCache()
+
+        # Run full sync against the mocks
+        self.ad_sync.update_all_users()
+
+        # Verify that we send an empty value to MO for 'extension_2'
+        self.assertEqual(
+            self.ad_sync.mo_post_calls,
+            [
+                self._expected_engagement_edit_call(
+                    extension_2="", validity_from=today
+                )
+            ]
+        )
+
     @parameterized.expand(
         [
             ## Finalize
@@ -631,3 +732,18 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             "noop": [],
         }
         self.assertEqual(self.ad_sync.mo_post_calls, sync_expected[expected])
+
+    def _expected_engagement_edit_call(self, validity_from=None, **data):
+        call = {
+            "force": True,
+            "payload": {
+                "data": {
+                    "validity": {"from": validity_from, "to": None},
+                },
+                "type": "engagement",
+                "uuid": "engagement_uuid",
+            },
+            "url": "details/edit",
+        }
+        call["payload"]["data"].update(**data)
+        return call
