@@ -45,7 +45,7 @@ class FixDepartments(object):
                                  use_cache=False)
 
         try:
-            self.org_uuid = self.helper.read_organisation()
+            self.org_uuid = self.settings.get('integrations.SD_Lon.fix_departments_root', self.helper.read_organisation())
         except requests.exceptions.RequestException as e:
             logger.error(e)
             print(e)
@@ -506,7 +506,7 @@ def unit_fixer(short_names, uuids):
 
     for department_uuid in chain(short_name_uuids, department_uuids):
         unit_fixer.fix_or_create_branch(department_uuid, fix_date)
-        unit_fixer.fix_NY_logic(department_uuid, today)
+        # unit_fixer.fix_NY_logic(department_uuid, today)
 
 
 if __name__ == '__main__':
