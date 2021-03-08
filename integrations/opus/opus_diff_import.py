@@ -86,11 +86,11 @@ class OpusDiffImport(object):
             exit()
         self.updater = MOPrimaryEngagementUpdater()
 
-        self.engagement_types, _ = self._find_classes('engagement_type')
+        self.engagement_types, self.engagement_type_facet = self._find_classes('engagement_type')
         self.unit_types, self.unit_type_facet = self._find_classes('org_unit_type')
         self.manager_levels, self.manager_level_facet = self._find_classes(
             'manager_level')
-        self.role_types, _ = self._find_classes('role_type')
+        self.role_types, self.role_type_facet = self._find_classes('role_type')
         self.manager_types, self.manager_type_facet = self._find_classes(
             'manager_type')
         self.responsibilities, _ = self._find_classes('responsibility')
@@ -431,14 +431,15 @@ class OpusDiffImport(object):
         self._update_unit_addresses(unit)
 
     def _job_and_engagement_type(self, employee):
-        # It is assumed no new engagement types are added during daily
-        # updates. Default 'Ansat' is the default from the initial import
         job = employee["position"]
         self._update_professions(job)
         job_function = self.job_functions[job]
 
-        contract = employee.get('workContractText', 'Ansat')
-        eng_type = self.engagement_types[contract]
+        contract = employee.get('workContractText')
+        eng_type = self.engagement_types.get(contract)
+        if not eng_type:
+            self._add_klasse_to_lora(contract, self.engagement_type_facet)
+            eng_type = contract
         return job_function, eng_type
 
     def update_engagement(self, engagement, employee):
@@ -733,6 +734,8 @@ class OpusDiffImport(object):
                 logger.info('Create new role: {}'.format(opus_role))
                 # TODO: We will fail a if  new role-type surfaces
                 role_type = self.role_types.get(opus_role['artText'])
+                if not role_type:
+                    self._add_klasse_to_lora(opus_role['artText'], self.role_type_facet)
                 payload = payloads.create_role(
                     employee=employee,
                     user_uuid=mo_user['uuid'],
