@@ -2,6 +2,7 @@
 import sys
 from datetime import date
 from functools import partial
+from itertools import chain
 from os.path import dirname
 from unittest import TestCase
 
@@ -11,6 +12,7 @@ sys.path.append(dirname(__file__))
 sys.path.append(dirname(__file__) + "/..")
 
 from test_utils import TestADMoSyncMixin, dict_modifier, mo_modifier
+from utils import AttrDict
 
 
 def iso_date(date):
@@ -43,6 +45,110 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             return settings
 
         return add_sync_mapping
+
+    def _setup_address_type_mappings(self, address_type):
+        settings = self._prepare_settings(
+            self._sync_address_mapping_transformer()
+        )
+        mapping = settings["integrations.ad"][0]["ad_mo_sync_mapping"]
+        address_type_setting = mapping["user_addresses"][address_type]
+        return AttrDict(
+            settings=settings,
+            address_type_uuid=address_type_setting[0],
+            address_type_visibility=address_type_setting[1],
+        )
+
+    def _get_expected_mo_api_calls(self, setup, expected, mo_values, ad_data, today):
+        expected_sync = {
+            "noop": [],
+            "create": [
+                {
+                    "force": True,
+                    "payload": {
+                        "address_type": {"uuid": setup.address_type_uuid},
+                        "org": {"uuid": "org_uuid"},
+                        "person": {"uuid": mo_values["uuid"]},
+                        "type": "address",
+                        "validity": {"from": today, "to": None},
+                        "value": ad_data,
+                    },
+                    "url": "details/create",
+                }
+            ],
+            "edit": [
+                {
+                    "force": True,
+                    "payload": [
+                        {
+                            "data": {
+                                "address_type": {"uuid": setup.address_type_uuid},
+                                "validity": {"from": today, "to": None},
+                                "value": ad_data,
+                            },
+                            "type": "address",
+                            "uuid": "address_uuid",
+                        }
+                    ],
+                    "url": "details/edit",
+                }
+            ],
+            "terminate": [
+                {
+                    "force": True,
+                    "payload": {
+                        "type": "address",
+                        "uuid": "address_uuid",
+                        "validity": {"to": today},
+                    },
+                    "url": "details/terminate",
+                }
+            ],
+        }
+        return expected_sync[expected]
+
+    def _get_expected_mo_api_calls_with_visibility(
+        self,
+        setup: AttrDict,
+        expected: str,
+        mo_values: dict,
+        ad_data: str,
+        today: str,
+    ):
+        calls = self._get_expected_mo_api_calls(
+            setup, expected, mo_values, ad_data, today
+        )
+
+        # Enrich expected with visibility
+        if setup.address_type_visibility:
+            # Where to write visibility information
+            payload_table = {
+                "noop": lambda: {},  # aka. throw it away
+                "create": lambda: calls[0]["payload"],
+                "edit": lambda: payload_table["create"]()[0]["data"],
+                "terminate": lambda: {},
+            }
+            # Write the visibility into the table
+            visibility_lower = setup.address_type_visibility.lower()
+            payload_table[expected]()["visibility"] = {
+                "uuid": "address_visibility_" + visibility_lower + "_uuid"
+            }
+
+        return calls
+
+    def _get_expected_mo_engagement_edit_call(self, validity_from=None, **data):
+        call = {
+            "force": True,
+            "payload": {
+                "data": {
+                    "validity": {"from": validity_from, "to": None},
+                },
+                "type": "engagement",
+                "uuid": "engagement_uuid",
+            },
+            "url": "details/edit",
+        }
+        call["payload"]["data"].update(**data)
+        return call
 
     @parameterized.expand(
         [
@@ -127,16 +233,9 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                     'edit': The current address in MO is updated.
                     'terminate': The current address in MO is terminated.
         """
+        setup = self._setup_address_type_mappings(address_type)
         today = today_iso()
         mo_values = self.mo_values_func()
-        self.settings = self._prepare_settings(
-            self._sync_address_mapping_transformer()
-        )
-        address_type_setting = self.settings["integrations.ad"][0][
-            "ad_mo_sync_mapping"
-        ]["user_addresses"][address_type]
-        address_type_uuid = address_type_setting[0]
-        address_type_visibility = address_type_setting[1]
 
         # Helper functions to seed admosync mock
         def add_ad_data(ad_values):
@@ -150,7 +249,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
                 "address": [
                     {
                         "uuid": "address_uuid",
-                        "address_type": {"uuid": address_type_uuid},
+                        "address_type": {"uuid": setup.address_type_uuid},
                         "org": {"uuid": "org_uuid"},
                         "person": {"uuid": mo_values["uuid"]},
                         "type": "address",
@@ -161,7 +260,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             }
 
         self._setup_admosync(
-            transform_settings=lambda _: self.settings,
+            transform_settings=lambda _: setup.settings,
             transform_ad_values=add_ad_data,
             seed_mo=seed_mo,
         )
@@ -171,68 +270,71 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
         # Run full sync against the mocks
         self.ad_sync.update_all_users()
 
-        # Expected outcome
-        expected_sync = {
-            "noop": [],
-            "create": [
-                {
-                    "force": True,
-                    "payload": {
-                        "address_type": {"uuid": address_type_uuid},
+        # Check that the expected MO calls were made
+        self.assertEqual(
+            self.ad_sync.mo_post_calls,
+            self._get_expected_mo_api_calls_with_visibility(
+                setup, expected, mo_values, ad_data, today
+            ),
+        )
+
+    def test_sync_address_data_multiple_of_same_type(self):
+        address_type = "email"
+        setup = self._setup_address_type_mappings(address_type)
+        today = today_iso()
+        mo_values = self.mo_values_func()
+
+        mo_value = "old value"
+        ad_value = "new value"
+
+        # Helper functions to seed admosync mock
+        def add_ad_data(ad_values):
+            ad_values[address_type] = ad_value
+            return ad_values
+
+        def seed_mo():
+            return {
+                "address": [
+                    {
+                        "uuid": "address_uuid",
+                        "address_type": {"uuid": setup.address_type_uuid},
                         "org": {"uuid": "org_uuid"},
                         "person": {"uuid": mo_values["uuid"]},
                         "type": "address",
                         "validity": {"from": today, "to": None},
-                        "value": ad_data,
+                        "value": mo_value,
                     },
-                    "url": "details/create",
-                }
-            ],
-            "edit": [
-                {
-                    "force": True,
-                    "payload": [
-                        {
-                            "data": {
-                                "address_type": {"uuid": address_type_uuid},
-                                "validity": {"from": today, "to": None},
-                                "value": ad_data,
-                            },
-                            "type": "address",
-                            "uuid": "address_uuid",
-                        }
-                    ],
-                    "url": "details/edit",
-                }
-            ],
-            "terminate": [
-                {
-                    "force": True,
-                    "payload": {
-                        "type": "address",
+                    {
                         "uuid": "address_uuid",
-                        "validity": {"to": today},
+                        "address_type": {"uuid": setup.address_type_uuid},
+                        "org": {"uuid": "org_uuid"},
+                        "person": {"uuid": mo_values["uuid"]},
+                        "type": "address",
+                        "validity": {"from": today, "to": None},
+                        "value": mo_value,
                     },
-                    "url": "details/terminate",
-                }
-            ],
-        }
-        # Enrich expected with visibility
-        if address_type_visibility:
-            # Where to write visibility information
-            payload_table = {
-                "noop": lambda: {},  # aka. throw it away
-                "create": lambda: expected_sync[expected][0]["payload"],
-                "edit": lambda: payload_table["create"]()[0]["data"],
-                "terminate": lambda: {},
-            }
-            # Write the visibility into the table
-            visibility_lower = address_type_visibility.lower()
-            payload_table[expected]()["visibility"] = {
-                "uuid": "address_visibility_" + visibility_lower + "_uuid"
+                ]
             }
 
-        self.assertEqual(self.ad_sync.mo_post_calls, expected_sync[expected])
+        self._setup_admosync(
+            transform_settings=lambda _: setup.settings,
+            transform_ad_values=add_ad_data,
+            seed_mo=seed_mo,
+        )
+
+        self.assertEqual(self.ad_sync.mo_post_calls, [])
+
+        # Run full sync against the mocks
+        self.ad_sync.update_all_users()
+
+        # Check that the expected MO calls were made
+        expected_calls = chain(
+            *[
+                self._get_expected_mo_api_calls(setup, verb, mo_values, ad_value, today)
+                for verb in ("edit", "terminate")
+            ]
+        )
+        self.assertEqual(self.ad_sync.mo_post_calls, list(expected_calls))
 
     def test_sync_address_data_multiple(self):
         """Verify address data is synced correctly from AD to MO."""
@@ -522,7 +624,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
         self.assertEqual(
             self.ad_sync.mo_post_calls,
             [
-                self._expected_engagement_edit_call(
+                self._get_expected_mo_engagement_edit_call(
                     extension_2="", validity_from=today
                 )
             ]
@@ -582,7 +684,7 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
         self.assertEqual(
             self.ad_sync.mo_post_calls,
             [
-                self._expected_engagement_edit_call(
+                self._get_expected_mo_engagement_edit_call(
                     extension_2="", validity_from=today
                 )
             ]
@@ -732,18 +834,3 @@ class TestADMoSync(TestCase, TestADMoSyncMixin):
             "noop": [],
         }
         self.assertEqual(self.ad_sync.mo_post_calls, sync_expected[expected])
-
-    def _expected_engagement_edit_call(self, validity_from=None, **data):
-        call = {
-            "force": True,
-            "payload": {
-                "data": {
-                    "validity": {"from": validity_from, "to": None},
-                },
-                "type": "engagement",
-                "uuid": "engagement_uuid",
-            },
-            "url": "details/edit",
-        }
-        call["payload"]["data"].update(**data)
-        return call

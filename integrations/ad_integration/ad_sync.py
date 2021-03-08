@@ -104,10 +104,15 @@ class AdMoSync(object):
         """
         Find the addresses that is already related to a user.
         :param uuid: The uuid of the user in question.
-        :return: A dictionary with address classes as keys and tuples of address
-        objects and values as values.
+        :return: A dictionary with the keys 'edit' and 'terminate'.
+        The dictionary values are dictionaries with address classes as
+        keys and tuples of address objects and values as values.
         """
-        types_to_edit = {}
+        result = {
+            'edit': {},
+            'terminate': {},
+        }
+
         if self.lc:
             user_addresses = []
             for addr in self.lc.addresses.values():
@@ -141,16 +146,17 @@ class AdMoSync(object):
                     self.visibility[visibility_uuid] == address['visibility']['uuid']
                 )
             potential_matches = filter(check_address_visibility, potential_matches)
-            # Consume iterator, verifying either 0 or 1 elements are returned
-            try:
-                found_address = only(potential_matches)
-                if found_address is not None:
-                    types_to_edit[field] = found_address
-            except ValueError:
-                logger.warning('Multiple addresses found, not syncing for {}: {}'.format(uuid, field))
-                continue
-        logger.debug('Existing fields for {}: {}'.format(uuid, types_to_edit))
-        return types_to_edit
+            for potential_match in potential_matches:
+                if potential_match is not None:
+                    if field not in result['edit']:
+                        result['edit'][field] = potential_match
+                    else:
+                        result['terminate'][field] = potential_match
+
+        logger.debug('Fields to edit for %r: %r', uuid, result['edit'])
+        logger.debug('Fields to terminate for %r: %r', uuid, result['terminate'])
+
+        return result
 
     def _create_address(self, uuid, value, klasse):
         """
@@ -337,30 +343,37 @@ class AdMoSync(object):
         for field, klasse in self.mapping['user_addresses'].items():
             if not ad_object.get(field):
                 logger.debug('No such field %r in AD object', field)
-                if field in fields_to_edit:
+                if field in fields_to_edit['edit']:
                     self._finalize_user_addresses(uuid, ad_object)
                 else:
                     logger.debug('%r not in fields to edit', field)
                 continue
 
-            if field not in fields_to_edit.keys():
-                # This is a new address
+            if field not in fields_to_edit['edit']:
+                # This is a new address: create in MO
                 self.stats['addresses'][0] += 1
                 self.stats['users'].add(uuid)
                 self._create_address(uuid, ad_object[field], klasse)
             else:
-                # This is an existing address
-                if not fields_to_edit[field]['value'] == ad_object[field]:
-                    msg = 'Value change, MO: {} <> AD: {}'
+                # This is an existing address: update in MO if changed in AD
+                field_to_edit = fields_to_edit['edit'][field]
+                if field_to_edit['value'] == ad_object[field]:
+                    msg = 'No value change: MO: %r == AD: %r'
+                else:
+                    msg = 'Value change: MO: %r <> AD: %r'
                     self.stats['addresses'][1] += 1
                     self.stats['users'].add(uuid)
-                    self._edit_address(fields_to_edit[field]['uuid'],
-                                       ad_object[field],
-                                       klasse)
-                else:
-                    msg = 'No value change: {}=={}'
-                logger.debug(msg.format(fields_to_edit[field]['value'],
-                                        ad_object[field]))
+                    self._edit_address(
+                        field_to_edit['uuid'],
+                        ad_object[field],
+                        klasse,
+                    )
+                logger.debug(msg, field_to_edit['value'], ad_object[field])
+
+            if field in fields_to_edit['terminate']:
+                self._finalize_user_addresses_post_to_mo(
+                    fields_to_edit['terminate'][field]
+                )
 
     def _finalize_it_system(self, uuid, ad_object):
         if 'it_systems' not in self.mapping:
@@ -396,7 +409,6 @@ class AdMoSync(object):
         if 'user_addresses' not in self.mapping:
             return
 
-        today = datetime.strftime(datetime.now(), "%Y-%m-%d")
         fields_to_edit = self._find_existing_ad_address_types(uuid)
 
         def check_ad_field_exists(field):
@@ -406,27 +418,32 @@ class AdMoSync(object):
             return True
 
         def check_field_in_fields_to_edit(field):
-            return field in fields_to_edit.keys()
+            return field in fields_to_edit['edit']
 
         def check_validity_is_ok(field):
             # NOTE: Maybe this should be not set, or in the future?
-            return fields_to_edit[field]['validity']['to'] is None
+            return fields_to_edit['edit'][field]['validity']['to'] is None
 
         # Find fields to terminate
-        address_fields = self.mapping['user_addresses'].keys()
+        address_fields = self.mapping['user_addresses']
         # we terminate even if somebody has removed the field from AD
         # address_fields = filter(check_ad_field_exists, address_fields)
         address_fields = filter(check_field_in_fields_to_edit, address_fields)
         address_fields = filter(check_validity_is_ok, address_fields)
         for field in address_fields:
-            payload = {
-                'type': 'address',
-                'uuid': fields_to_edit[field]['uuid'],
-                'validity': {"to": today}
-            }
-            logger.debug('Finalize payload: {}'.format(payload))
-            response = self.helper._mo_post('details/terminate', payload)
-            logger.debug('Response: {}'.format(response.text))
+            self._finalize_user_addresses_post_to_mo(fields_to_edit['edit'][field])
+
+    def _finalize_user_addresses_post_to_mo(self, mo_address: dict):
+        today = datetime.strftime(datetime.now(), "%Y-%m-%d")
+        payload = {
+            'type': 'address',
+            'uuid': mo_address['uuid'],
+            'validity': {"to": today}
+        }
+        logger.debug('Finalize payload: {}'.format(payload))
+        response = self.helper._mo_post('details/terminate', payload)
+        logger.debug('Response: {}'.format(response.text))
+        return response
 
     def _update_single_user(self, uuid, ad_object, terminate_disabled):
         """
