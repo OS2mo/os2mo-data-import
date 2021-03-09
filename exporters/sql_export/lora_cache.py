@@ -298,7 +298,7 @@ class LoraCache(object):
             'relationer': ('overordnet', 'enhedstype', 'niveau'),
             'attributter': ('organisationenhedegenskaber',)
         }
-        unit_list = self._perform_lora_lookup(url, params)
+        unit_list = self._perform_lora_lookup(url, params, skip_history=True)
 
         units = {}
         for unit in unit_list:
