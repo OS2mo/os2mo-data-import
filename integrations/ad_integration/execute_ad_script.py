@@ -154,7 +154,7 @@ class ADExecute(ADWriter):
 @optgroup.group("Action", cls=RequiredMutuallyExclusiveOptionGroup)
 @optgroup.option(
     '--validate-script',
-    help='Validate that a template can be parsedf',
+    help='Validate that a template can be parsed',
 )
 @optgroup.option(
     '--execute-script',
